@@ -23,6 +23,16 @@ erp:
   default: 0.0423
   source: "Damodaran implied ERP (S&P 500), 4.23% as of 2026-01-01 vintage"
 
+# Sentiment engine (platform Layer 2a). method: lexicon | finbert | llm
+# - lexicon: finance lexicon, no heavy deps (default; works anywhere)
+# - finbert: ProsusAI/finbert via transformers (needs `pip install transformers torch`)
+# - llm: graded sentiment + aspects via an Ollama-compatible endpoint (e.g. the DGX Spark)
+sentiment:
+  method: "lexicon"
+  lexicon_path: null            # point at the Loughran-McDonald master CSV for full coverage
+  llm_endpoint: "http://localhost:11434"   # Ollama-compatible; set to the DGX Spark's address
+  llm_model: "qwen2.5:32b"
+
 # Default valuation skeleton. Company files override; `null` -> derived from history.
 defaults:
   valuation:

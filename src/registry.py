@@ -65,6 +65,7 @@ def load_company(ticker: str) -> dict:
     cfg: dict = {}
     cfg["data"] = g["data"]
     cfg["erp"] = g.get("erp", {})
+    cfg["sentiment"] = g.get("sentiment", {})
     cfg["sector_templates"] = g.get("sector_templates", {})
     cfg["company"] = company_cfg.get("company", {"ticker": ticker, "name": ticker})
     cfg["company"].setdefault("ticker", ticker)

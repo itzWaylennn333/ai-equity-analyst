@@ -31,6 +31,7 @@ import comps as comps_mod
 import scenarios as scen_mod
 import charts as charts_mod
 import ingest
+import sentiment as sentiment_mod
 
 st.set_page_config(page_title="Equity Intelligence Platform", layout="wide")
 
@@ -267,11 +268,41 @@ with tabs[5]:
     else:
         st.info("Upload documents above to populate the per-ticker document store.")
 
-# --- Sentiment / Predictive placeholders ---
+# --- Sentiment (P4) ---
 with tabs[6]:
-    st.info("**Sentiment engine (roadmap P4):** FinBERT/FinGPT + aspect-based + Loughran-McDonald, "
-            "with directional signal (tone vs. expectations, Δ vs. prior filing) and credibility-weighting (P5). "
-            "See docs/ARCHITECTURE.md §4-5.")
+    st.subheader("Sentiment (directional)")
+    method = cfg["sentiment"].get("method", "lexicon")
+    chunks = ingest.load_chunks(cfg, ticker)
+    if not chunks:
+        st.info("Upload documents (Documents tab) to run sentiment. Engine method = "
+                f"**{method}** (config `sentiment.method`): `lexicon` (default, no deps), `finbert` "
+                "(needs transformers), or `llm` (Ollama endpoint, e.g. your DGX Spark).")
+    else:
+        try:
+            rep = sentiment_mod.analyze(cfg, ticker, chunks, method=method)
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Overall tone", f"{rep['overall_tone']:+.2f}", rep["direction"])
+            c2.metric("Conviction", f"{rep['conviction']:.0%}")
+            c3.metric("Uncertainty rate", f"{rep['uncertainty_rate']*100:.2f}%")
+            if rep["by_aspect"]:
+                asp = pd.DataFrame([{"aspect": a, "tone": v["tone"], "mentions": v["mentions"]}
+                                    for a, v in rep["by_aspect"].items()]).sort_values("tone")
+                fig = go.Figure(go.Bar(x=asp["tone"], y=asp["aspect"], orientation="h",
+                                       marker_color=[GREEN if t >= 0 else RED for t in asp["tone"]],
+                                       text=[f"{t:+.2f} ({m})" for t, m in zip(asp["tone"], asp["mentions"])]))
+                fig.update_layout(title=f"Aspect sentiment ({method})", height=340,
+                                  xaxis_title="tone (-1 bearish .. +1 bullish)")
+                st.plotly_chart(fig, width="stretch")
+            st.caption("Filings skew negative (risk-factor language); read the **aspect breakdown** and "
+                       "tone-vs-prior-filing change as the directional signal, not the absolute level. "
+                       "Lexicon tone is coarse — enable `finbert`/`llm` for nuance.")
+            with st.expander("Most positive / negative excerpts"):
+                for e in rep.get("top_positive", []):
+                    st.markdown(f"🟢 **({e['tone']:+.2f})** {e['text']}")
+                for e in rep.get("top_negative", []):
+                    st.markdown(f"🔴 **({e['tone']:+.2f})** {e['text']}")
+        except Exception as e:  # noqa: BLE001
+            st.error(f"Sentiment ({method}) failed: {e}. Try method=lexicon, or check the LLM endpoint.")
 with tabs[7]:
     st.info("**Predictive layer (roadmap P7):** factor + sentiment composite → calibrated probability of "
             "positive forward excess return, validated with purged CV + Deflated Sharpe. See docs/ARCHITECTURE.md §7.")
