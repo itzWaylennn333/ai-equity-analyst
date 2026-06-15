@@ -56,9 +56,16 @@
     "identifier": "ADYEN.AS",
     "url": "https://finance.yahoo.com/quote/ADYEN.AS",
     "files": [
+      "data/raw/yahoo/ADYEN.AS/income_annual.csv",
+      "data/raw/yahoo/ADYEN.AS/balance_annual.csv",
+      "data/raw/yahoo/ADYEN.AS/cashflow_annual.csv",
+      "data/raw/yahoo/ADYEN.AS/income_quarterly.csv",
+      "data/raw/yahoo/ADYEN.AS/balance_quarterly.csv",
+      "data/raw/yahoo/ADYEN.AS/cashflow_quarterly.csv",
+      "data/raw/yahoo/ADYEN.AS/prices.csv",
       "data/raw/yahoo/ADYEN.AS/info.json"
     ],
-    "retrieved_utc": "2026-06-15T05:18:37+00:00"
+    "retrieved_utc": "2026-06-15T12:39:38+00:00"
   },
   "yahoo:FIS": {
     "source": "yahoo",
@@ -136,5 +143,120 @@
       "data/raw/edgar/CIK0000019617_facts.json"
     ],
     "retrieved_utc": "2026-06-15T12:36:31+00:00"
+  },
+  "yahoo:MSFT": {
+    "source": "yahoo",
+    "identifier": "MSFT",
+    "url": "https://finance.yahoo.com/quote/MSFT",
+    "files": [
+      "data/raw/yahoo/MSFT/income_annual.csv",
+      "data/raw/yahoo/MSFT/balance_annual.csv",
+      "data/raw/yahoo/MSFT/cashflow_annual.csv",
+      "data/raw/yahoo/MSFT/income_quarterly.csv",
+      "data/raw/yahoo/MSFT/balance_quarterly.csv",
+      "data/raw/yahoo/MSFT/cashflow_quarterly.csv",
+      "data/raw/yahoo/MSFT/prices.csv",
+      "data/raw/yahoo/MSFT/info.json"
+    ],
+    "retrieved_utc": "2026-06-15T12:38:58+00:00"
+  },
+  "edgar:0000789019": {
+    "source": "edgar",
+    "identifier": "0000789019",
+    "url": "https://data.sec.gov/api/xbrl/companyfacts/CIK0000789019.json",
+    "files": [
+      "data/raw/edgar/CIK0000789019_facts.json"
+    ],
+    "retrieved_utc": "2026-06-15T12:39:00+00:00"
+  },
+  "yahoo:KO": {
+    "source": "yahoo",
+    "identifier": "KO",
+    "url": "https://finance.yahoo.com/quote/KO",
+    "files": [
+      "data/raw/yahoo/KO/income_annual.csv",
+      "data/raw/yahoo/KO/balance_annual.csv",
+      "data/raw/yahoo/KO/cashflow_annual.csv",
+      "data/raw/yahoo/KO/income_quarterly.csv",
+      "data/raw/yahoo/KO/balance_quarterly.csv",
+      "data/raw/yahoo/KO/cashflow_quarterly.csv",
+      "data/raw/yahoo/KO/prices.csv",
+      "data/raw/yahoo/KO/info.json"
+    ],
+    "retrieved_utc": "2026-06-15T12:39:08+00:00"
+  },
+  "edgar:0000021344": {
+    "source": "edgar",
+    "identifier": "0000021344",
+    "url": "https://data.sec.gov/api/xbrl/companyfacts/CIK0000021344.json",
+    "files": [
+      "data/raw/edgar/CIK0000021344_facts.json"
+    ],
+    "retrieved_utc": "2026-06-15T12:39:11+00:00"
+  },
+  "yahoo:XOM": {
+    "source": "yahoo",
+    "identifier": "XOM",
+    "url": "https://finance.yahoo.com/quote/XOM",
+    "files": [
+      "data/raw/yahoo/XOM/income_annual.csv",
+      "data/raw/yahoo/XOM/balance_annual.csv",
+      "data/raw/yahoo/XOM/cashflow_annual.csv",
+      "data/raw/yahoo/XOM/income_quarterly.csv",
+      "data/raw/yahoo/XOM/balance_quarterly.csv",
+      "data/raw/yahoo/XOM/cashflow_quarterly.csv",
+      "data/raw/yahoo/XOM/prices.csv",
+      "data/raw/yahoo/XOM/info.json"
+    ],
+    "retrieved_utc": "2026-06-15T12:39:19+00:00"
+  },
+  "edgar:0000034088": {
+    "source": "edgar",
+    "identifier": "0000034088",
+    "url": "https://data.sec.gov/api/xbrl/companyfacts/CIK0000034088.json",
+    "files": [
+      "data/raw/edgar/CIK0000034088_facts.json"
+    ],
+    "retrieved_utc": "2026-06-15T12:39:20+00:00"
+  },
+  "yahoo:CRM": {
+    "source": "yahoo",
+    "identifier": "CRM",
+    "url": "https://finance.yahoo.com/quote/CRM",
+    "files": [
+      "data/raw/yahoo/CRM/income_annual.csv",
+      "data/raw/yahoo/CRM/balance_annual.csv",
+      "data/raw/yahoo/CRM/cashflow_annual.csv",
+      "data/raw/yahoo/CRM/income_quarterly.csv",
+      "data/raw/yahoo/CRM/balance_quarterly.csv",
+      "data/raw/yahoo/CRM/cashflow_quarterly.csv",
+      "data/raw/yahoo/CRM/prices.csv",
+      "data/raw/yahoo/CRM/info.json"
+    ],
+    "retrieved_utc": "2026-06-15T12:39:28+00:00"
+  },
+  "edgar:0001108524": {
+    "source": "edgar",
+    "identifier": "0001108524",
+    "url": "https://data.sec.gov/api/xbrl/companyfacts/CIK0001108524.json",
+    "files": [
+      "data/raw/edgar/CIK0001108524_facts.json"
+    ],
+    "retrieved_utc": "2026-06-15T12:39:30+00:00"
+  },
+  "upload:PYPL": {
+    "source": "upload",
+    "identifier": "PYPL",
+    "url": "local-upload",
+    "files": [
+      "C:\\Users\\wayle\\OneDrive - Nanyang Technological University\\Business_Consulting Stuff\\Resume_CV\\Finance project\\equity-research-PYPL\\data\\processed\\PYPL\\documents\\chunks.jsonl"
+    ],
+    "retrieved_utc": "2026-06-15T12:44:50+00:00",
+    "extra": {
+      "docs": [
+        "10-K_2026-02-03.html"
+      ],
+      "n_chunks": 146
+    }
   }
 }

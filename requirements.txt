@@ -15,5 +15,13 @@ yfinance==1.4.1
 scipy==1.16.3
 Jinja2==3.1.6
 
+# --- document ingestion (platform P2) ---
+pdfplumber
+python-docx
+openpyxl
+beautifulsoup4
+lxml
+pymupdf            # PDF text fallback + preview rasterization
+
 # --- PDF fallback only (pure-Python HTML/CSS -> PDF) ---
 # weasyprint==66.0
