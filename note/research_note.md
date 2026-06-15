@@ -59,13 +59,14 @@ Around these sit **Venmo** (P2P plus a growing monetization layer — debit card
 
 ## Industry & competitive positioning
 
-Digital payments is a large, secularly growing market driven by e-commerce penetration, the shift from cash to digital wallets, and the rise of embedded/omnichannel commerce — but competitive intensity is rising at exactly the layer where PayPal earns its best economics.
+Digital payments is a large, secularly growing market (global digital-payments TPV in the tens of trillions, mid-teens % annual growth) driven by e-commerce penetration, the cash-to-digital-wallet shift, and embedded/omnichannel commerce. But competitive intensity is rising at exactly the layer where PayPal earns its best economics, and the competitive set differs by engine:
 
-- **Branded checkout** faces **Apple Pay** (default-installed on every iPhone, with biometric friction advantages) and **Shopify's Shop Pay** (native to millions of merchant storefronts). PayPal's button is increasingly *optional* rather than *default*.
-- **Unbranded (Braintree)** competes with **Stripe** (private), **Adyen**, and **Fiserv/Global Payments** on price and reliability — a structurally lower-margin arena.
-- **Venmo** competes with **Zelle** (bank-backed, free) and **Cash App** (Block) for U.S. consumer engagement.
+- **Branded checkout (the high-margin core)** faces two structural threats. **Apple Pay** is default-installed on every iPhone with a biometric, one-tap friction advantage and is increasingly accepted online; **Shopify's Shop Pay** is native to millions of merchant storefronts and converts at high rates. Both make PayPal's button *optional* rather than *default* — the single most important competitive dynamic for the thesis. Google Pay and "buy directly" card-on-file (Amazon, large retailers) compound the pressure.
+- **Unbranded processing (Braintree)** competes with **Stripe** (private, ~$90B+ last valuation, the developer-favourite and aggressive on enterprise), **Adyen** (premium, single-platform, winning large global merchants), and **Fiserv / Global Payments / FIS** (scaled legacy acquirers). This is a price-competitive, structurally low-margin arena — which is exactly why management is repricing Braintree for margin over volume.
+- **Venmo / P2P & consumer** competes with **Zelle** (bank-consortium, free, ~$1T+ volume but largely unmonetized), **Cash App** (Block — deeper monetization via Cash App Card, stock, BTC), Apple Cash, and Google. The battleground is monetizing engagement (debit, Pay-with-Venmo, business profiles) without choking usage.
+- **BNPL & adjacencies**: **Affirm**, **Klarna**, **Afterpay** (Block) and **Apple Pay Later** compete with PayPal's BNPL; **Affirm/Klarna** also increasingly appear *as checkout buttons*, another vector of branded disintermediation.
 
-PayPal's moat is **scale and two-sided ubiquity** — 400M+ accounts, deep merchant integration, trust, and a net-cash balance sheet — rather than a pricing or technology monopoly. That moat is real but eroding at the edges; the investment debate is whether scale, brand, and new monetization can stabilize branded economics faster than competition erodes them.
+**Moat assessment.** PayPal's advantage is **scale and two-sided ubiquity** — 400M+ accounts, deep merchant integration, brand trust, two decades of risk/fraud data, and a net-cash balance sheet — rather than a pricing or technology monopoly. It is a *weakening wide-ish moat*: defensible in trust, ubiquity, and risk modelling; vulnerable at the point of checkout choice. The entire investment debate is whether scale, brand, data, and new monetization (Venmo, advertising, agentic) can **stabilize** branded economics faster than Apple/Shopify erode them. Our base case requires stabilization, not victory.
 
 ---
 
@@ -140,7 +141,7 @@ Each scenario is a coherent assumption set plus a target multiple (the thesis is
 | **Base** — stabilization, partial re-rating | 50% | 4.1% | 10.2× fwd | **$59** | +42% |
 | **Bear** — structural erosion, no re-rating | 25% | 1.2% | 6.5× fwd | **$36** | −14% |
 
-The **probability-weighted target is $59 (+41%)**, with a **6.8× reward-to-risk** profile. Note that even the bear-case *DCF intrinsic* is ~$67 — in that scenario PayPal isn't expensive, the multiple simply never cooperates (a value trap), which is why the downside is cushioned rather than catastrophic.
+The **probability-weighted target is $59 (+41%)**, with a **6.8× reward-to-risk** profile. We weight **50% base / 25% bull / 25% bear**: a 50% base reflects genuine uncertainty (we are not highly confident in any single path), and we hold the tails *symmetric* in probability because, while the bear's structural risk is real, the bull's optionality (Venmo, advertising, agentic) is equally unmodelled — the asymmetry we are paid for shows up in the *magnitudes* ($81 vs $36), not the odds. (A more bearish 20/45/35 weighting still yields a ~$54 target, +30%.) Note that even the bear-case *DCF intrinsic* is ~$67 — in that scenario PayPal isn't expensive, the multiple simply never cooperates (a value trap), which is why the downside is cushioned rather than catastrophic.
 
 ![Scenario price targets: skewed to the upside](../outputs/charts/10_scenarios.png)
 
@@ -160,12 +161,14 @@ Our $59 target sits **above** the sell-side mean ($51.54, "Hold" consensus, rang
 
 ## Risks & bear case
 
-We steelman the downside rather than dismiss it:
+We steelman the downside rather than dismiss it. Our bear case ($36, −14%) is built on these, roughly in order of magnitude:
 
-- **Structural checkout disintermediation (the core risk).** If Apple Pay and Shop Pay continue taking branded-checkout share, the high-margin core shrinks and the mix shift to low-margin Braintree becomes permanent — transaction-margin growth fades toward zero and the multiple stays depressed. The take-rate decline (2.02% → 1.85%, three years running) is the live evidence this is happening.
-- **Low-quality recent earnings.** FY25 net income (+26%) was flattered by a 16.8% tax rate and buyback optics; transactions actually *fell 4%* and engagement softened (txns/account 60.6 → 57.7). Strip the tax tailwind and the underlying franchise grows mid-single-digits at best.
-- **The defense costs money.** Arresting branded erosion requires spending (rewards, checkout investment, incentives), which caps the margin-expansion thesis. A cheap stock with an eroding moat can stay cheap — or de-rate — for years (our bear case, $36).
-- **Macro/credit and regulatory.** A consumer slowdown pressures volume; the consumer-credit book carries loss risk; payments faces rising data-privacy and competition scrutiny across jurisdictions.
+- **Structural checkout disintermediation (the core risk).** If Apple Pay and Shop Pay keep taking branded-checkout share, the high-margin core shrinks and the mix shift to low-margin Braintree becomes permanent — transaction-margin growth fades toward zero and the multiple stays depressed. The take-rate decline (2.02% → 1.85%, three years running) is the live evidence. *Magnitude:* this is the difference between our base and bear cases — roughly a ~5pt swing in terminal margin and the entire re-rating (10.2× vs 6.5× fwd P/E), i.e. ~$23/share.
+- **Low-quality recent earnings.** FY25 net income (+26%) was flattered by a 16.8% tax rate (vs ~23% normalized) and buyback optics; transactions actually *fell 4%* and engagement softened (txns/account 60.6 → 57.7). Strip the tax tailwind and the underlying franchise grows mid-single-digits at best. *Magnitude:* normalizing tax alone removes ~$0.40–0.50 of FY25 EPS (~8%).
+- **Agentic commerce & stablecoin disruption (the new, double-edged risk).** As AI agents and stablecoin rails (incl. PayPal's own PYUSD) mediate more transactions, the *checkout layer itself* could be commoditized — agents optimize for price/availability, not brand loyalty, weakening PayPal's button further. PayPal is investing here (PYUSD, "agentic commerce," PayPal World), but the same wave that is its option value could disintermediate its core. We treat this as a genuine tail risk, not just upside.
+- **Venmo monetization is unproven at scale.** A material slice of the bull case rests on converting Venmo's large, engaged, but lightly-monetized base. History (years of "Venmo monetization" promises) argues for skepticism; if debit/Pay-with-Venmo/business-profile attach rates disappoint, a key growth pillar is hollow.
+- **The defense costs money.** Arresting branded erosion requires spending (PayPal Everywhere rewards, checkout investment, incentives), which caps the margin-expansion thesis. A cheap stock with an eroding moat can stay cheap — or de-rate — for years; that is precisely the value-trap bear case.
+- **Macro, credit & regulatory.** A consumer slowdown pressures discretionary volume; the consumer/merchant loans-receivable book carries credit-loss risk in a downturn; and payments faces rising data-privacy, interchange, and competition scrutiny (e.g., regulatory pressure on Apple's NFC/wallet defaults cuts both ways).
 
 ## Conclusion
 
