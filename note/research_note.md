@@ -12,7 +12,7 @@ date: "15 June 2026"
 | **Rating: BUY** | **Price target: $59** | **Current: $41.53** | **Upside: +42%** |
 
 **Sector:** Financials / Payments  **Mkt cap:** $36.6B  **EV:** ~$38.6B  **Shares out:** 882M
-**Fwd P/E:** 7.2×  **EV/EBITDA:** ~6×  **FCF yield:** ~15%  **Net debt:** $1.9B (≈net cash)  **52-wk:** $38.46–$79.50
+**Fwd P/E:** 7.2×  **EV/EBITDA:** ~6×  **FCF yield:** ~15%  **Net debt:** $1.9B (near net cash)  **52-wk:** $38.46–$79.50
 
 ## Investment summary
 
@@ -48,7 +48,7 @@ PayPal has repurchased ~$6B of stock annually — more than 100% of free cash fl
 
 ## Business overview
 
-PayPal operates a **two-sided payments network** connecting 439 million active consumer and merchant accounts across ~200 markets, processing **$1.79 trillion** of total payment volume (TPV) and 25.4 billion transactions in FY2025. It monetizes volume at a **take rate** (revenue ÷ TPV ≈ 1.85%). The business has two engines:
+PayPal operates a **two-sided payments network** connecting 439 million active consumer and merchant accounts across ~200 markets, processing **$1.79 trillion** of total payment volume (TPV) and 25.4 billion transactions in FY2025. It monetizes volume at a **take rate** (revenue ÷ TPV, about 1.85%). The business has two engines:
 
 - **Branded checkout** — the PayPal and Venmo buttons at online (and increasingly in-person) checkout. High take-rate, high-margin, and the source of the franchise's economics. This is the contested core.
 - **Unbranded processing (Braintree)** — PayPal-as-a-processor for large enterprises (e.g., marketplaces and travel). Fast-growing but low take-rate; it dilutes blended economics even as it adds volume.
@@ -118,7 +118,7 @@ A 5-year FCFF model on the approved base case. **Free cash flow to firm treats s
 | Operating margin | ~flat 18.3%→18.7% | No heroic expansion beyond FY25 |
 | Tax rate | 23% (normalized) | vs. FY25's tax-flattered 16.8%; US marginal ~24% |
 | Terminal growth | 2.5% | Well below the 4% nominal-GDP cap |
-| WACC | **8.57%** | Live 10Y 4.49% + β1.30 × ERP 4.23% (Damodaran) |
+| WACC | **8.57%** | Live 10Y 4.49% + beta 1.30 × ERP 4.23% (Damodaran) |
 | Net debt | $1.9B (strict) | Excludes pass-through customer funds |
 
 This yields an **intrinsic value of $80 (exit-multiple) to $94 (Gordon-growth)** per share. The sensitivity grid is the key exhibit: **every** cell exceeds the current price.

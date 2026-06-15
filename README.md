@@ -6,37 +6,45 @@ analysis, performs scenario and sensitivity analysis, and generates every chart 
 table used in the written note. The note is the product; the engine makes every
 number in it defensible.
 
-> **Status:** Phase 0 complete (setup & scaffold). Rating, price target, and thesis
-> are **not yet determined** — they are produced by the model and locked at the
-> Phase 2–3 checkpoints. Nothing here is a recommendation yet.
+> **Deliverable:** [`outputs/research_note.pdf`](outputs/research_note.pdf) — a ~5–6 page
+> initiating-coverage note. Data as of 2026-06-15 (FY2025 10-K).
 
-## Thesis TL;DR
-_To be written at Phase 2 (thesis) / Phase 5 (note). The central debate: is PayPal's
-branded-checkout take-rate erosion **structural** (Apple Pay / Shop Pay taking the
-high-margin core) or **cyclical-and-fixable** (new management re-monetizing a
-400M+ account franchise that generates large free cash flow)?_
+## Thesis TL;DR — **BUY, $59 12-month target (+42%)**
+The market prices PayPal as a melting ice cube; we see a **mispriced cash machine**.
+At **7.2× forward earnings and a ~15% FCF yield**, the market is discounting structural
+free-cash-flow decline — yet under CEO Alex Chriss the profit engine is *inflecting*
+(operating margin 13.9% → 18.3%, ROIC ~9% → ~17%), and ~$6B/yr of buybacks have
+compounded EPS from $2.09 to $5.41. The take-rate erosion (2.02% → 1.85%) is real but
+substantially priced. **We don't need PayPal to win the checkout war — only not to lose
+it outright**, which is all the price requires. Probability-weighted target $59 with a
+**6.8× reward-to-risk** skew (bull $81 / base $59 / bear $36).
 
 | | |
 |---|---|
 | **Ticker** | PYPL (NASDAQ) |
-| **Rating** | _TBD — Phase 2_ |
-| **Price target** | _TBD — Phase 3_ |
-| **Current price** | see latest data pull |
+| **Rating** | **BUY** |
+| **12-month price target** | **$59** (+42%) |
+| **Current price** | $41.53 |
+| **Valuation** | DCF intrinsic $80–$94; ~6× EV/EBITDA, 7.2× fwd P/E |
 
 ## How to reproduce (clean checkout)
 ```bash
 # 1. Create/activate a Python 3.13 environment, then:
 python -m pip install -r requirements.txt
 
-# 2. Verify data sources are reachable (optional smoke test):
+# 2. (optional) verify data sources are reachable:
 python tests/test_connectivity.py
 
-# 3. Run the full pipeline (data -> financials -> wacc -> dcf -> comps -> charts):
-python run.py            # (added incrementally across phases)
+# 3. Run the full pipeline (data -> financials -> wacc -> dcf -> comps -> scenarios -> charts):
+python run.py
 
-# 4. Render the PDF note (requires pandoc + a LaTeX distribution; falls back to weasyprint):
-#    handled by the render step in Phase 6
+# 4. Also render the PDF note (needs pandoc + a LaTeX engine):
+python run.py --pdf
 ```
+**Render toolchain:** `winget install JohnMacFarlane.Pandoc`, plus a LaTeX engine —
+[tectonic](https://tectonic-typesetting.github.io/) (self-contained, recommended) or
+MiKTeX/TeX Live. `src/render.py` auto-detects pandoc + the engine (incl. per-user installs).
+
 Cached raw pulls live in `data/raw/` (committed, so the analysis reproduces offline),
 with provenance logged in `data/raw/_manifest.json`.
 

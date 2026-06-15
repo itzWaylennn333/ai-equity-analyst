@@ -16,6 +16,11 @@ Thumbs.db
 *.tmp
 *.swp
 
+# transient render artifacts
+outputs/_pdf_preview/
+note/*.aux
+note/*.log
+
 # NOTE: data/ and outputs/ are intentionally NOT ignored.
 # Committing cached raw pulls + processed data + generated charts means the
 # analysis reproduces from a clean checkout WITHOUT a network connection, and
