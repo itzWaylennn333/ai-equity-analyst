@@ -1,0 +1,77 @@
+# =====================================================================
+# Company config: PayPal Holdings, Inc. (PYPL)
+# Explicit, hand-approved (locked) assumptions. These OVERRIDE the global
+# defaults/auto-derivation in config.yaml. Output paths are kept FLAT to
+# preserve the committed deliverable (note/research_note.md + outputs/).
+# =====================================================================
+company:
+  name: "PayPal Holdings, Inc."
+  ticker: "PYPL"
+  cik: "0001633917"
+  currency: "USD"
+  fiscal_year_end: "12-31"
+  sector_template: "standard"
+  operating_metrics: "data/processed/operating_metrics.csv"   # PYPL-specific sourced KPIs (TPV, take rate)
+
+peers:
+  core:
+    - { ticker: "XYZ",      name: "Block, Inc.",        rationale: "Closest pure peer: payments + Cash App consumer wallet" }
+    - { ticker: "FI",       name: "Fiserv",             rationale: "Merchant acquiring + Clover; scaled processor" }
+    - { ticker: "GPN",      name: "Global Payments",    rationale: "Pure merchant acquiring" }
+    - { ticker: "ADYEN.AS", name: "Adyen",              rationale: "Enterprise unbranded processor; Braintree rival (EUR-listed)" }
+    - { ticker: "FIS",      name: "Fidelity Natl Info", rationale: "Banking + merchant payment processing" }
+  anchors:
+    - { ticker: "V",        name: "Visa",               rationale: "Card network -- context only, excluded from median" }
+    - { ticker: "MA",       name: "Mastercard",         rationale: "Card network -- context only, excluded from median" }
+
+valuation:
+  tax_rate: 0.23
+  marginal_tax_rate: 0.24
+  terminal:
+    growth: 0.025
+    exit_ev_ebitda: 9.0
+  wacc:
+    equity_risk_premium: 0.0423
+    erp_source: "Damodaran implied ERP (S&P 500), 4.23% as of 2026-01-01 vintage"
+    beta: 1.30
+    beta_source: "yfinance 1.336, cross-checked vs regression on ^GSPC (1.22-1.43)"
+    cost_of_debt: 0.0442
+  projections:
+    revenue_growth:  [0.045, 0.045, 0.040, 0.038, 0.035]
+    ebit_margin:     [0.183, 0.184, 0.185, 0.186, 0.187]
+    da_pct_revenue:  0.029
+    capex_pct_revenue: 0.026
+    nwc_pct_revenue: 0.005
+
+scenarios:
+  bull:
+    probability: 0.25
+    revenue_growth:  [0.070, 0.070, 0.065, 0.060, 0.055]
+    ebit_margin:     [0.186, 0.195, 0.205, 0.210, 0.215]
+    terminal_growth: 0.030
+    fwd_eps: 6.00
+    target_fwd_pe: 13.5
+    notes: "Branded checkout stabilizes, Venmo + advertising + agentic commerce scale, take-rate compression halts; re-rates toward peers."
+  base:
+    probability: 0.50
+    revenue_growth:  [0.045, 0.045, 0.040, 0.038, 0.035]
+    ebit_margin:     [0.183, 0.184, 0.185, 0.186, 0.187]
+    terminal_growth: 0.025
+    fwd_eps: 5.77
+    target_fwd_pe: 10.2
+    notes: "Stabilization: ~4% growth, flat margins; partial re-rating to ~10x."
+  bear:
+    probability: 0.25
+    revenue_growth:  [0.020, 0.015, 0.010, 0.010, 0.005]
+    ebit_margin:     [0.180, 0.178, 0.175, 0.173, 0.170]
+    terminal_growth: 0.015
+    fwd_eps: 5.50
+    target_fwd_pe: 6.5
+    notes: "Branded share loss accelerates, take-rate compression continues, margins fade; FCF ex-growth, no re-rating."
+
+# Flat output paths preserve the committed PYPL deliverable.
+output:
+  charts_dir: "outputs/charts"
+  tables_dir: "outputs/tables"
+  note_md: "note/research_note.md"
+  pdf_path: "outputs/research_note.pdf"

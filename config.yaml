@@ -1,116 +1,69 @@
 # =====================================================================
-# Equity Research Model Configuration -- PayPal Holdings, Inc. (PYPL)
+# GLOBAL platform configuration & defaults.
 # ---------------------------------------------------------------------
-# Single source of truth for the valuation. Change inputs here and re-run
-# `python run.py` to reproduce the entire analysis (charts, tables, note).
-#
-# INTEGRITY NOTE: values marked `# TODO[P3]` / `# TODO[P4]` are PLACEHOLDERS
-# to be SET and BENCHMARKED at the relevant Phase checkpoint. They are NOT
-# final, are not yet justified, and must not be cited until approved.
+# Company-specific values live in companies/<TICKER>.yaml and OVERRIDE these.
+# Values left `null` here are AUTO-DERIVED from the company's own history at
+# runtime (see src/assumptions.py), so the platform can value ANY ticker with
+# sensible defaults the user then tunes. PayPal (companies/PYPL.yaml) supplies
+# explicit, hand-approved assumptions instead of auto-derivation.
 # =====================================================================
-
-company:
-  name: "PayPal Holdings, Inc."
-  ticker: "PYPL"
-  cik: "0001633917"          # SEC EDGAR Central Index Key
-  currency: "USD"
-  fiscal_year_end: "12-31"   # PayPal reports on a calendar year
 
 data:
   cache_dir: "data/raw"
   processed_dir: "data/processed"
-  manifest: "data/raw/_manifest.json"   # provenance log (source, url, ts) per pull
-  sec_user_agent: "AI Equity Analyst research@example.com"  # SEC requires a UA
+  manifest: "data/raw/_manifest.json"
+  sec_user_agent: "AI Equity Analyst research@example.com"
+  ticker_cik_map: "https://www.sec.gov/files/company_tickers.json"
   price_history_years: 6
-  financials_years: 5          # years of historical financials to analyze
-  cache_max_age_days: 7        # re-pull a cached file only if older than this
+  financials_years: 5
+  cache_max_age_days: 7
 
-# Comparable companies.
-#   core    -> drive the peer-multiple medians used in the comps valuation
-#   anchors -> card networks shown for CONTEXT ONLY (toll-road economics differ;
-#              excluded from the median so they don't inflate the implied value)
-# Peer set is provisional; finalized & justified at the Phase 3 checkpoint.
-peers:
-  core:
-    - { ticker: "XYZ",      name: "Block, Inc.",        rationale: "Closest pure peer: payments + Cash App consumer wallet" }
-    - { ticker: "FI",       name: "Fiserv",             rationale: "Merchant acquiring + Clover; scaled processor" }
-    - { ticker: "GPN",      name: "Global Payments",    rationale: "Pure merchant acquiring" }
-    - { ticker: "ADYEN.AS", name: "Adyen",              rationale: "Enterprise unbranded processor; direct Braintree rival (EUR-listed)" }
-    - { ticker: "FIS",      name: "Fidelity Natl Info", rationale: "Banking + merchant payment processing" }
-  anchors:
-    - { ticker: "V",        name: "Visa",               rationale: "Card network -- context only, excluded from median" }
-    - { ticker: "MA",       name: "Mastercard",         rationale: "Card network -- context only, excluded from median" }
+# Regional equity risk premia (Damodaran). USD default; extend per region as needed.
+erp:
+  default: 0.0423
+  source: "Damodaran implied ERP (S&P 500), 4.23% as of 2026-01-01 vintage"
 
-valuation:
-  horizon_years: 5             # explicit DCF window before terminal value
-  tax_rate: 0.23               # normalized tax for NOPAT & FCFF (FY25 GAAP eff. 16.8% was
-                               # tax-credit flattered; US marginal ~24% -> normalize to 23%)
-  marginal_tax_rate: 0.24      # used for after-tax cost of debt in WACC
-  sbc_treatment: "expense"     # treat stock-based comp as a REAL cost (do NOT add back)
-  net_debt_basis: "strict"     # strict = total debt - cash & equiv (conservative);
-                               # excludes pass-through customer funds & loans receivable
+# Default valuation skeleton. Company files override; `null` -> derived from history.
+defaults:
+  valuation:
+    horizon_years: 5
+    tax_rate: null              # -> normalized effective tax from history (clamped 12-30%)
+    marginal_tax_rate: 0.24
+    sbc_treatment: "expense"    # treat stock-based comp as a real cost
+    net_debt_basis: "strict"    # total debt - cash & equivalents
+    terminal:
+      method: "both"            # Gordon growth AND exit-multiple
+      growth: null              # -> min(2.5%, cap)
+      growth_cap: 0.04          # HARD CAP (long-run nominal GDP)
+      exit_ev_ebitda: null      # -> core-peer median EV/EBITDA (clamped 5-15x)
+    wacc:
+      risk_free_source: "live_10y_ust"
+      risk_free_fallback: 0.0449
+      equity_risk_premium: null # -> erp.default
+      erp_source: null          # -> erp.source
+      beta: null                # -> yfinance beta (fallback 1.1)
+      beta_source: "yfinance reported beta"
+      cost_of_debt: null        # -> interest expense / total debt (clamped 2-9%)
+    projections:
+      revenue_growth: null      # -> historical CAGR tapered toward terminal growth
+      ebit_margin: null         # -> recent 3y avg operating margin, held flat
+      da_pct_revenue: null      # -> recent 3y D&A / revenue
+      capex_pct_revenue: null   # -> recent 3y capex / revenue
+      nwc_pct_revenue: 0.010    # modest default working-capital drag
+  scenarios: null               # -> parametric bull/base/bear derived from the base case
 
-  terminal:
-    method: "both"             # compute Gordon growth AND exit-multiple; show both
-    growth: 0.025              # 2.5%, well below the 4% cap and long-run nominal GDP
-    growth_cap: 0.04           # HARD CAP (integrity guardrail enforced in tests/)
-    exit_ev_ebitda: 9.0        # provisional; refined from peer median in comps (Phase 3)
+# Sector templates: which valuation framework applies (integrity guardrail mirroring
+# the brief's "avoid banks/insurers/early biotech" rule -- the engine routes or declines).
+sector_templates:
+  standard:    { method: "dcf_comps",   note: "DCF + comparables (default)" }
+  financials:  { method: "unsupported", note: "Banks/insurers need residual-income / P-B-ROE, not FCFF DCF" }
+  reit:        { method: "ffo_nav",     note: "Use FFO/AFFO multiples and NAV, not FCFF DCF" }
+  biotech_dev: { method: "unsupported", note: "Pre-revenue/single-asset biotech is binary/clinical, not DCF" }
 
-  wacc:
-    risk_free_source: "live_10y_ust"  # pull current US 10Y Treasury yield live (^TNX)
-    risk_free_fallback: 0.0449         # 10Y UST as of 2026-06-15 pull, if live fetch fails
-    equity_risk_premium: 0.0423        # Damodaran implied ERP, S&P 500
-    erp_source: "Damodaran implied ERP (S&P 500), 4.23% as of 2026-01-01 vintage"
-    beta: 1.30                         # central est: 5y wkly 1.43, 2y wkly 1.22, yfinance 1.34
-    beta_source: "yfinance 1.336, cross-checked vs regression on ^GSPC (1.22-1.43)"
-    cost_of_debt: 0.0442               # FY25 interest expense / total debt (IG profile)
-
-  # Base-case projection drivers (FY2026E-FY2030E). Balanced ~4% growth posture.
-  # Benchmarked: revenue growth tapers from FY25's +4.3% (take-rate drag) but stays
-  # positive (volume + new monetization); margins drift up modestly on efficiency.
-  projections:
-    revenue_growth:  [0.045, 0.045, 0.040, 0.038, 0.035]  # ~4.1% CAGR
-    ebit_margin:     [0.183, 0.184, 0.185, 0.186, 0.187]  # ~flat from FY25 GAAP 18.3%
-                                                          # (modest efficiency, mostly reinvested)
-    da_pct_revenue:  0.029     # FY25 D&A 2.9% of revenue
-    capex_pct_revenue: 0.026   # FY25 capex 2.6% of revenue (asset-light)
-    nwc_pct_revenue: 0.005     # modest working-capital drag (core ops, ex pass-through)
-
-# Bull / base / bear -- each a COHERENT set of assumption changes (not just +/-10%).
-# 12-month PT = target_fwd_pe x fwd_eps (a re-rating thesis: the multiple is the swing
-# factor; near-term EPS barely diverges). DCF intrinsic is computed per scenario too.
-scenarios:
-  bull:
-    probability: 0.25
-    revenue_growth:  [0.070, 0.070, 0.065, 0.060, 0.055]   # TM$ re-accelerates ~6-7%
-    ebit_margin:     [0.186, 0.195, 0.205, 0.210, 0.215]   # operating leverage delivers
-    terminal_growth: 0.030
-    fwd_eps: 6.00            # modest near-term beat
-    target_fwd_pe: 13.5      # re-rates toward payment-peer multiples
-    notes: "Branded checkout stabilizes (better UX/Fastlane), Venmo + advertising + agentic
-      commerce scale, take-rate compression halts; market re-rates toward peers."
-  base:
-    probability: 0.50
-    revenue_growth:  [0.045, 0.045, 0.040, 0.038, 0.035]   # ~4% CAGR (approved)
-    ebit_margin:     [0.183, 0.184, 0.185, 0.186, 0.187]   # ~flat
-    terminal_growth: 0.025
-    fwd_eps: 5.77            # yfinance consensus forward EPS
-    target_fwd_pe: 10.2      # partial re-rating from 7.2x; still a discount to peers
-    notes: "Stabilization: ~4% growth, flat margins, take-rate drag moderates as branded
-      holds and new monetization contributes; partial re-rating to ~10x."
-  bear:
-    probability: 0.25
-    revenue_growth:  [0.020, 0.015, 0.010, 0.010, 0.005]   # TM$ fades toward zero
-    ebit_margin:     [0.180, 0.178, 0.175, 0.173, 0.170]   # margins erode on defense spend
-    terminal_growth: 0.015
-    fwd_eps: 5.50            # softer near-term
-    target_fwd_pe: 6.5       # no re-rating / slight de-rate; value trap
-    notes: "Branded-checkout share loss accelerates, take-rate compression continues,
-      margins fade as PayPal spends to defend; FCF positive but ex-growth, no re-rating."
-
+# Default output paths (per-ticker namespaced). Company files may override (PYPL keeps flat).
 output:
-  charts_dir: "outputs/charts"
-  tables_dir: "outputs/tables"
-  note_md: "note/research_note.md"
-  pdf_path: "outputs/research_note.pdf"
-  render: "pandoc_latex"     # primary; automatic fallback -> weasyprint
+  charts_dir: "outputs/{ticker}/charts"
+  tables_dir: "outputs/{ticker}/tables"
+  note_md: "outputs/{ticker}/research_note.md"
+  pdf_path: "outputs/{ticker}/research_note.pdf"
+  render: "pandoc_latex"

@@ -21,6 +21,14 @@ outputs/_pdf_preview/
 note/*.aux
 note/*.log
 
+# Per-ticker generated outputs are regenerable (`python run.py --ticker X`).
+# Keep only the PYPL deliverable (flat outputs/charts, outputs/tables, outputs/research_note.pdf).
+outputs/*/
+!outputs/charts/
+!outputs/tables/
+data/processed/historical_*.csv
+data/processed/dcf_projection_*.csv
+
 # NOTE: data/ and outputs/ are intentionally NOT ignored.
 # Committing cached raw pulls + processed data + generated charts means the
 # analysis reproduces from a clean checkout WITHOUT a network connection, and

@@ -97,9 +97,32 @@ def get_info(cfg: dict, ticker: str, force: bool = False) -> dict:
 # --------------------------------------------------------------------------- #
 # SEC EDGAR
 # --------------------------------------------------------------------------- #
-def get_edgar_facts(cfg: dict, cik: str, force: bool = False) -> dict:
-    """Pull and cache the full XBRL companyfacts JSON for a CIK."""
+def resolve_cik(cfg: dict, ticker: str) -> str | None:
+    """Map a ticker to its SEC CIK via the cached company_tickers.json. None if not found."""
     dcfg = cfg["data"]
+    path = f"{dcfg['cache_dir']}/edgar/company_tickers.json"
+    if not utils.cache_is_fresh(path, 30):
+        try:
+            r = requests.get(dcfg.get("ticker_cik_map", "https://www.sec.gov/files/company_tickers.json"),
+                             headers={"User-Agent": dcfg["sec_user_agent"]}, timeout=30)
+            r.raise_for_status()
+            utils.save_json(r.json(), path)
+        except Exception:
+            if not utils.resolve(path).exists():
+                return None
+    table = utils.load_json(path)
+    t = ticker.upper()
+    for row in (table.values() if isinstance(table, dict) else table):
+        if str(row.get("ticker", "")).upper() == t:
+            return str(row["cik_str"]).zfill(10)
+    return None
+
+
+def get_edgar_facts(cfg: dict, cik: str | None, force: bool = False) -> dict | None:
+    """Pull and cache the full XBRL companyfacts JSON for a CIK. None if no CIK (non-US)."""
+    dcfg = cfg["data"]
+    if not cik:
+        return None
     cik = str(cik).zfill(10)
     path = f"{dcfg['cache_dir']}/edgar/CIK{cik}_facts.json"
     url = SEC_FACTS_URL.format(cik=cik)

@@ -98,14 +98,18 @@ def build_historical(cfg: dict, yahoo: dict, edgar_facts: dict | None = None) ->
     H["fcff"] = H["nopat"] + H["da"] + H["capex"] + H["chg_nwc"]   # capex/chg_nwc already signed
     H["roic"] = H["nopat"] / (H["total_debt"] + H["equity"])       # approx invested capital
 
-    # --- Operating metrics (filing-sourced) ---
-    om = pd.read_csv(utils.resolve("data/processed/operating_metrics.csv"))
-    om = om.set_index("year")
-    H["tpv_usd_b"] = om["tpv_usd_b"].reindex(H.index)
-    H["payment_transactions_b"] = om["payment_transactions_b"].reindex(H.index)
-    H["active_accounts_m"] = om["active_accounts_m"].reindex(H.index)
-    H["txn_expense_rate_pct"] = om["txn_expense_rate_pct"].reindex(H.index)
-    H["total_take_rate"] = H["revenue"] / (H["tpv_usd_b"] * 1e9)   # revenue / TPV
+    # --- Operating metrics (optional, company-specific, filing-sourced) ---
+    # Only PayPal ships a sourced TPV/take-rate file; other tickers leave these NaN.
+    om_cols = ["tpv_usd_b", "payment_transactions_b", "active_accounts_m", "txn_expense_rate_pct"]
+    om_path = cfg.get("company", {}).get("operating_metrics")
+    if om_path and utils.resolve(om_path).exists():
+        om = pd.read_csv(utils.resolve(om_path)).set_index("year")
+        for c in om_cols:
+            H[c] = om[c].reindex(H.index) if c in om.columns else np.nan
+        H["total_take_rate"] = H["revenue"] / (H["tpv_usd_b"] * 1e9)
+    else:
+        for c in om_cols + ["total_take_rate"]:
+            H[c] = np.nan
 
     return H
 

@@ -86,5 +86,55 @@
       "data/raw/yahoo/MA/info.json"
     ],
     "retrieved_utc": "2026-06-15T05:18:38+00:00"
+  },
+  "yahoo:NKE": {
+    "source": "yahoo",
+    "identifier": "NKE",
+    "url": "https://finance.yahoo.com/quote/NKE",
+    "files": [
+      "data/raw/yahoo/NKE/income_annual.csv",
+      "data/raw/yahoo/NKE/balance_annual.csv",
+      "data/raw/yahoo/NKE/cashflow_annual.csv",
+      "data/raw/yahoo/NKE/income_quarterly.csv",
+      "data/raw/yahoo/NKE/balance_quarterly.csv",
+      "data/raw/yahoo/NKE/cashflow_quarterly.csv",
+      "data/raw/yahoo/NKE/prices.csv",
+      "data/raw/yahoo/NKE/info.json"
+    ],
+    "retrieved_utc": "2026-06-15T12:32:32+00:00"
+  },
+  "edgar:0000320187": {
+    "source": "edgar",
+    "identifier": "0000320187",
+    "url": "https://data.sec.gov/api/xbrl/companyfacts/CIK0000320187.json",
+    "files": [
+      "data/raw/edgar/CIK0000320187_facts.json"
+    ],
+    "retrieved_utc": "2026-06-15T12:32:33+00:00"
+  },
+  "yahoo:JPM": {
+    "source": "yahoo",
+    "identifier": "JPM",
+    "url": "https://finance.yahoo.com/quote/JPM",
+    "files": [
+      "data/raw/yahoo/JPM/income_annual.csv",
+      "data/raw/yahoo/JPM/balance_annual.csv",
+      "data/raw/yahoo/JPM/cashflow_annual.csv",
+      "data/raw/yahoo/JPM/income_quarterly.csv",
+      "data/raw/yahoo/JPM/balance_quarterly.csv",
+      "data/raw/yahoo/JPM/cashflow_quarterly.csv",
+      "data/raw/yahoo/JPM/prices.csv",
+      "data/raw/yahoo/JPM/info.json"
+    ],
+    "retrieved_utc": "2026-06-15T12:36:29+00:00"
+  },
+  "edgar:0000019617": {
+    "source": "edgar",
+    "identifier": "0000019617",
+    "url": "https://data.sec.gov/api/xbrl/companyfacts/CIK0000019617.json",
+    "files": [
+      "data/raw/edgar/CIK0000019617_facts.json"
+    ],
+    "retrieved_utc": "2026-06-15T12:36:31+00:00"
   }
 }

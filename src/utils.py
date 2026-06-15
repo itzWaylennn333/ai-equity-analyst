@@ -32,6 +32,15 @@ def load_config(path: str | Path = "config.yaml") -> dict:
         return yaml.safe_load(f)
 
 
+def load_yaml(path: str | Path) -> dict:
+    """Load any YAML file (absolute or project-relative path)."""
+    p = Path(path)
+    if not p.is_absolute():
+        p = PROJECT_ROOT / p
+    with open(p, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
 def resolve(path: str | Path) -> Path:
     """Resolve a config-relative path to an absolute Path under the project root."""
     p = Path(path)

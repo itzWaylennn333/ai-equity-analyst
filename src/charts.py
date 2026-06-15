@@ -301,7 +301,9 @@ def generate_historical_charts(cfg, H, yahoo):
         chart_revenue_growth(cfg, H),
         chart_margins(cfg, H),
         chart_fcf(cfg, H),
-        chart_tpv_takerate(cfg, H),
         chart_shares_buybacks(cfg, H),
     ]
+    # TPV / take-rate chart only when operating metrics exist (PayPal-style KPIs)
+    if "tpv_usd_b" in H.columns and H["tpv_usd_b"].notna().any():
+        paths.append(chart_tpv_takerate(cfg, H))
     return paths
