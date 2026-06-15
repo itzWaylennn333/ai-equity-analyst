@@ -1,0 +1,19 @@
+# Equity Research Model -- PayPal (PYPL)
+# Tested with Anaconda Python 3.13.9 on Windows 11.
+# Install:  python -m pip install -r requirements.txt
+#
+# PDF rendering (primary path) uses pandoc + a LaTeX distribution (e.g. MiKTeX),
+# installed separately from pip. weasyprint below is the automatic fallback.
+
+pandas==2.3.3
+numpy==2.3.5
+matplotlib==3.10.6
+seaborn==0.13.2
+PyYAML==6.0.3
+requests==2.32.5
+yfinance==1.4.1
+scipy==1.16.3
+Jinja2==3.1.6
+
+# --- PDF fallback only (pure-Python HTML/CSS -> PDF) ---
+# weasyprint==66.0

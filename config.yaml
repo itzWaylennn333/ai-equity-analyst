@@ -1,0 +1,82 @@
+# =====================================================================
+# Equity Research Model Configuration -- PayPal Holdings, Inc. (PYPL)
+# ---------------------------------------------------------------------
+# Single source of truth for the valuation. Change inputs here and re-run
+# `python run.py` to reproduce the entire analysis (charts, tables, note).
+#
+# INTEGRITY NOTE: values marked `# TODO[P3]` / `# TODO[P4]` are PLACEHOLDERS
+# to be SET and BENCHMARKED at the relevant Phase checkpoint. They are NOT
+# final, are not yet justified, and must not be cited until approved.
+# =====================================================================
+
+company:
+  name: "PayPal Holdings, Inc."
+  ticker: "PYPL"
+  cik: "0001633917"          # SEC EDGAR Central Index Key
+  currency: "USD"
+  fiscal_year_end: "12-31"   # PayPal reports on a calendar year
+
+data:
+  cache_dir: "data/raw"
+  processed_dir: "data/processed"
+  manifest: "data/raw/_manifest.json"   # provenance log (source, url, ts) per pull
+  sec_user_agent: "AI Equity Analyst research@example.com"  # SEC requires a UA
+  price_history_years: 6
+  financials_years: 5          # years of historical financials to analyze
+  cache_max_age_days: 7        # re-pull a cached file only if older than this
+
+# Comparable companies.
+#   core    -> drive the peer-multiple medians used in the comps valuation
+#   anchors -> card networks shown for CONTEXT ONLY (toll-road economics differ;
+#              excluded from the median so they don't inflate the implied value)
+# Peer set is provisional; finalized & justified at the Phase 3 checkpoint.
+peers:
+  core:
+    - { ticker: "XYZ",      name: "Block, Inc.",        rationale: "Closest pure peer: payments + Cash App consumer wallet" }
+    - { ticker: "FI",       name: "Fiserv",             rationale: "Merchant acquiring + Clover; scaled processor" }
+    - { ticker: "GPN",      name: "Global Payments",    rationale: "Pure merchant acquiring" }
+    - { ticker: "ADYEN.AS", name: "Adyen",              rationale: "Enterprise unbranded processor; direct Braintree rival (EUR-listed)" }
+    - { ticker: "FIS",      name: "Fidelity Natl Info", rationale: "Banking + merchant payment processing" }
+  anchors:
+    - { ticker: "V",        name: "Visa",               rationale: "Card network -- context only, excluded from median" }
+    - { ticker: "MA",       name: "Mastercard",         rationale: "Card network -- context only, excluded from median" }
+
+valuation:
+  horizon_years: 5             # explicit DCF window before terminal value
+  tax_rate: null               # TODO[P3] effective vs marginal; benchmark vs 10-K
+  sbc_treatment: "expense"     # treat stock-based comp as a REAL cost (do NOT add back)
+
+  terminal:
+    method: "both"             # compute Gordon growth AND exit-multiple; show both
+    growth: null               # TODO[P3] g <= long-run nominal GDP
+    growth_cap: 0.04           # HARD CAP (integrity guardrail enforced in tests/)
+    exit_ev_ebitda: null       # TODO[P3] peer exit EV/EBITDA for the exit-multiple TV
+
+  wacc:
+    risk_free_source: "live_10y_ust"  # pull current US 10Y Treasury yield live (^TNX)
+    equity_risk_premium: null         # TODO[P3] cite Damodaran current US ERP
+    erp_source: "Damodaran (vintage TBD)"
+    beta: null                        # TODO[P3] levered beta
+    beta_source: "yfinance, cross-checked vs regression on ^GSPC"
+    cost_of_debt: null                # TODO[P3] interest expense / total debt, or Rf + spread
+
+  # Explicit projection drivers -- set & benchmarked against history/peers at Phase 3.
+  projections:
+    revenue_growth: null     # TODO[P3] per-year list or CAGR
+    ebit_margin: null        # TODO[P3]
+    da_pct_revenue: null     # TODO[P3]
+    capex_pct_revenue: null  # TODO[P3]
+    nwc_pct_revenue: null    # TODO[P3] change in net working capital as % of revenue
+
+# Bull / base / bear -- each a COHERENT set of assumption changes (not just +/-10%).
+scenarios:                   # TODO[P4]
+  bull: { probability: null, notes: "" }
+  base: { probability: null, notes: "" }
+  bear: { probability: null, notes: "" }
+
+output:
+  charts_dir: "outputs/charts"
+  tables_dir: "outputs/tables"
+  note_md: "note/research_note.md"
+  pdf_path: "outputs/research_note.pdf"
+  render: "pandoc_latex"     # primary; automatic fallback -> weasyprint

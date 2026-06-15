@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+.pytest_cache/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+
+# NOTE: data/ and outputs/ are intentionally NOT ignored.
+# Committing cached raw pulls + processed data + generated charts means the
+# analysis reproduces from a clean checkout WITHOUT a network connection, and
+# every figure's provenance is auditable via data/raw/_manifest.json.
