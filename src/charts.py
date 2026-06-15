@@ -265,6 +265,35 @@ def chart_peer_multiples(cfg, comps_df, pypl_ev_ebitda, pypl_fwd_pe):
     return _save(fig, cfg, "09_peer_multiples.png")
 
 
+def chart_scenarios(cfg, scen_df, summary):
+    order = ["bear", "base", "bull"]
+    colors = {"bear": RED, "base": NAVY, "bull": GREEN}
+    price = summary["price"]
+    pw = summary["prob_weighted_target"]
+    fig, ax = plt.subplots(figsize=(8.4, 4.8))
+    x = range(len(order))
+    pts = [scen_df.loc[s, "price_target"] for s in order]
+    bars = ax.bar(x, pts, color=[colors[s] for s in order], width=0.6)
+    for xi, s in zip(x, order):
+        pt = scen_df.loc[s, "price_target"]
+        prob = scen_df.loc[s, "probability"]
+        up = scen_df.loc[s, "upside"]
+        ax.text(xi, pt + 1.5, f"${pt:,.0f}\n({up*100:+.0f}%)", ha="center", fontsize=9.5, fontweight="bold")
+        ax.text(xi, 2, f"{prob*100:.0f}% prob.", ha="center", fontsize=9, color="white", fontweight="bold")
+        ax.text(xi, -7, f"{s.upper()}\n{scen_df.loc[s,'target_fwd_pe']:.1f}x fwd P/E", ha="center", fontsize=8.5, color=colors[s])
+    ax.axhline(price, color=GREY, ls="--", lw=1.4)
+    ax.text(len(order) - 0.5, price, f" current ${price:,.2f}", color=GREY, fontsize=8.5, va="bottom", ha="right")
+    ax.axhline(pw, color=AMBER, ls="-", lw=2)
+    ax.text(0, pw, f"prob-weighted ${pw:,.0f} ({summary['prob_weighted_upside']*100:+.0f}%)",
+            color=AMBER, fontsize=9, va="bottom", fontweight="bold")
+    ax.set_xticks([]);
+    ax.set_ylim(-12, max(pts) * 1.2)
+    ax.set_ylabel("12-month price target ($)")
+    ax.set_title("Scenario price targets: skewed to the upside")
+    _footnote(fig, "12m target = target fwd P/E x fwd EPS per scenario. Author analysis.")
+    return _save(fig, cfg, "10_scenarios.png")
+
+
 def generate_historical_charts(cfg, H, yahoo):
     setup_style()
     paths = [

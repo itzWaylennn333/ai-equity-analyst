@@ -77,10 +77,36 @@ valuation:
     nwc_pct_revenue: 0.005     # modest working-capital drag (core ops, ex pass-through)
 
 # Bull / base / bear -- each a COHERENT set of assumption changes (not just +/-10%).
-scenarios:                   # TODO[P4]
-  bull: { probability: null, notes: "" }
-  base: { probability: null, notes: "" }
-  bear: { probability: null, notes: "" }
+# 12-month PT = target_fwd_pe x fwd_eps (a re-rating thesis: the multiple is the swing
+# factor; near-term EPS barely diverges). DCF intrinsic is computed per scenario too.
+scenarios:
+  bull:
+    probability: 0.25
+    revenue_growth:  [0.070, 0.070, 0.065, 0.060, 0.055]   # TM$ re-accelerates ~6-7%
+    ebit_margin:     [0.186, 0.195, 0.205, 0.210, 0.215]   # operating leverage delivers
+    terminal_growth: 0.030
+    fwd_eps: 6.00            # modest near-term beat
+    target_fwd_pe: 13.5      # re-rates toward payment-peer multiples
+    notes: "Branded checkout stabilizes (better UX/Fastlane), Venmo + advertising + agentic
+      commerce scale, take-rate compression halts; market re-rates toward peers."
+  base:
+    probability: 0.50
+    revenue_growth:  [0.045, 0.045, 0.040, 0.038, 0.035]   # ~4% CAGR (approved)
+    ebit_margin:     [0.183, 0.184, 0.185, 0.186, 0.187]   # ~flat
+    terminal_growth: 0.025
+    fwd_eps: 5.77            # yfinance consensus forward EPS
+    target_fwd_pe: 10.2      # partial re-rating from 7.2x; still a discount to peers
+    notes: "Stabilization: ~4% growth, flat margins, take-rate drag moderates as branded
+      holds and new monetization contributes; partial re-rating to ~10x."
+  bear:
+    probability: 0.25
+    revenue_growth:  [0.020, 0.015, 0.010, 0.010, 0.005]   # TM$ fades toward zero
+    ebit_margin:     [0.180, 0.178, 0.175, 0.173, 0.170]   # margins erode on defense spend
+    terminal_growth: 0.015
+    fwd_eps: 5.50            # softer near-term
+    target_fwd_pe: 6.5       # no re-rating / slight de-rate; value trap
+    notes: "Branded-checkout share loss accelerates, take-rate compression continues,
+      margins fade as PayPal spends to defend; FCF positive but ex-growth, no re-rating."
 
 output:
   charts_dir: "outputs/charts"
