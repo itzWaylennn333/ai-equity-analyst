@@ -1,0 +1,27 @@
+{
+  "yahoo:PYPL": {
+    "source": "yahoo",
+    "identifier": "PYPL",
+    "url": "https://finance.yahoo.com/quote/PYPL",
+    "files": [
+      "data/raw/yahoo/PYPL/income_annual.csv",
+      "data/raw/yahoo/PYPL/balance_annual.csv",
+      "data/raw/yahoo/PYPL/cashflow_annual.csv",
+      "data/raw/yahoo/PYPL/income_quarterly.csv",
+      "data/raw/yahoo/PYPL/balance_quarterly.csv",
+      "data/raw/yahoo/PYPL/cashflow_quarterly.csv",
+      "data/raw/yahoo/PYPL/prices.csv",
+      "data/raw/yahoo/PYPL/info.json"
+    ],
+    "retrieved_utc": "2026-06-15T04:41:49+00:00"
+  },
+  "edgar:0001633917": {
+    "source": "edgar",
+    "identifier": "0001633917",
+    "url": "https://data.sec.gov/api/xbrl/companyfacts/CIK0001633917.json",
+    "files": [
+      "data/raw/edgar/CIK0001633917_facts.json"
+    ],
+    "retrieved_utc": "2026-06-15T04:41:50+00:00"
+  }
+}

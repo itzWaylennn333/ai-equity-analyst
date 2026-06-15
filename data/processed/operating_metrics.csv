@@ -1,0 +1,5 @@
+year,tpv_usd_b,payment_transactions_b,active_accounts_m,txn_expense_rate_pct,source
+2022,1360,,,,"FY2022 10-K (filed 2023-02-10): 'In 2022, we processed $1.36 trillion of TPV'"
+2023,1530,,,0.94,"FY2023 10-K (filed 2024-02-08): '$1.53 trillion of TPV'; transaction expense rate 0.94% from FY2025 10-K opex table"
+2024,1680,26.3,434,0.93,"FY2024 10-K (filed 2025-02-04): '$1.68 trillion TPV (+10%), 26.3B payment transactions (+5%), 434M active accounts'"
+2025,1790,25.4,439,0.89,"FY2025 10-K (filed 2026-02-03): '$1.79 trillion TPV (+7%), 25.4B payment transactions (-4%), 439M active accounts'"
