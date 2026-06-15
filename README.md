@@ -48,6 +48,37 @@ MiKTeX/TeX Live. `src/render.py` auto-detects pandoc + the engine (incl. per-use
 Cached raw pulls live in `data/raw/` (committed, so the analysis reproduces offline),
 with provenance logged in `data/raw/_manifest.json`.
 
+## Platform: analyze *any* ticker
+
+This repo is also a generalized, config-driven analysis platform. PayPal ships locked,
+hand-approved assumptions (`companies/PYPL.yaml`); any other ticker auto-derives a
+sensible base case from its own history, which you then tune.
+
+```bash
+# CLI — value any ticker (assumptions auto-derived; banks/insurers/REITs skip the DCF)
+python run.py --ticker NKE
+python run.py --ticker MSFT
+
+# Interactive interface — tunable sliders -> live football field, sensitivity heatmap,
+# scenarios; upload documents; export. (Streamlit + Plotly)
+streamlit run app.py
+```
+
+- **Add a company:** copy `companies/_TEMPLATE.yaml` to `companies/<TICKER>.yaml`
+  (minimum = the `company:` block; everything else auto-derives). CIK auto-resolves
+  for US tickers.
+- **Integrity guardrails:** GAAP operating income from EDGAR with a yfinance fallback;
+  EDGAR net-income cross-validation; terminal-growth cap; WACC>g guard; sector router
+  that declines a FCFF DCF for banks/insurers/REITs/pre-revenue biotech; currency-aware.
+- **Document ingestion:** `src/ingest.py` parses uploaded PDF/HTML/DOCX/XLSX/CSV/TXT into
+  classified, chunked, provenance-tagged records (feeds RAG/extraction in later phases).
+- **Design & roadmap:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (6-layer system,
+  interface, local-LLM stack); technique research + citations in
+  [`docs/RESEARCH.md`](docs/RESEARCH.md). Built so far: P1 generalize, P2 ingestion,
+  P3 interface. Next: P4 sentiment → P5 credibility → P6 RAG+agents → P7 predictive → P8 synthesis.
+
+_Use an isolated environment (the project uses a conda env `equity-analyzer`)._
+
 ## Project structure
 ```
 equity-research-PYPL/

@@ -1,0 +1,32 @@
+# =====================================================================
+# Company config TEMPLATE. Copy to companies/<TICKER>.yaml and fill in.
+# Anything you OMIT is auto-derived from the company's own history at runtime
+# (growth, margins, tax, WACC inputs, terminal value, scenarios) — so the minimum
+# viable file is just the `company:` block. Add explicit values to lock them.
+# =====================================================================
+company:
+  name: "Example Corp"
+  ticker: "EXMPL"
+  cik: null                 # null -> auto-resolved from SEC for US tickers
+  currency: "USD"           # auto-overridden from yfinance financialCurrency
+  sector_template: "standard"   # standard | financials | reit | biotech_dev
+                                # (auto-detected for unconfigured tickers)
+  # operating_metrics: "data/processed/EXMPL_metrics.csv"  # optional sourced KPIs
+
+peers:                        # optional; drives comps. Omit for none.
+  core:
+    - { ticker: "PEER1", name: "Peer One", rationale: "why it belongs" }
+  anchors: []                 # shown for context, excluded from medians
+
+# --- Everything below is OPTIONAL (auto-derived if omitted). Uncomment to lock. ---
+# valuation:
+#   tax_rate: 0.23
+#   terminal: { growth: 0.025, exit_ev_ebitda: 10.0 }
+#   wacc: { beta: 1.10, equity_risk_premium: 0.0423, cost_of_debt: 0.05 }
+#   projections:
+#     revenue_growth: [0.05, 0.05, 0.04, 0.04, 0.03]
+#     ebit_margin:    [0.20, 0.20, 0.21, 0.21, 0.22]
+#     da_pct_revenue: 0.03
+#     capex_pct_revenue: 0.03
+#     nwc_pct_revenue: 0.01
+# scenarios:   # omit -> parametric bull/base/bear auto-built from the base case
