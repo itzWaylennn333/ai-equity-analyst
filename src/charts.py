@@ -189,6 +189,82 @@ def chart_shares_buybacks(cfg, H):
     return _save(fig, cfg, "06_shares_buybacks.png")
 
 
+def chart_sensitivity_heatmap(cfg, grid, base_wacc, base_g, current_price):
+    """grid: DataFrame index=WACC, cols=terminal g, values=intrinsic $/share."""
+    import matplotlib.colors as mcolors
+    fig, ax = plt.subplots(figsize=(8.2, 4.8))
+    data = grid.values.astype(float)
+    vmax = np.nanmax(np.abs(data - current_price))
+    norm = mcolors.TwoSlopeNorm(vmin=current_price - vmax, vcenter=current_price, vmax=current_price + vmax)
+    im = ax.imshow(data, cmap="RdYlGn", norm=norm, aspect="auto")
+    ax.set_xticks(range(len(grid.columns)))
+    ax.set_xticklabels([f"{g*100:.1f}%" for g in grid.columns])
+    ax.set_yticks(range(len(grid.index)))
+    ax.set_yticklabels([f"{w*100:.2f}%" for w in grid.index])
+    ax.set_xlabel("Terminal growth (g)")
+    ax.set_ylabel("WACC")
+    ax.set_title("DCF sensitivity: intrinsic value per share")
+    for i in range(data.shape[0]):
+        for j in range(data.shape[1]):
+            wj = abs(grid.index[i] - base_wacc) < 1e-6 and abs(grid.columns[j] - base_g) < 1e-6
+            ax.text(j, i, f"${data[i, j]:,.0f}", ha="center", va="center", fontsize=8.5,
+                    fontweight="bold" if wj else "normal",
+                    color="black", bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="black", lw=1.2) if wj else None)
+    ax.axhline(-0.5, color="white");
+    fig.text(0.01, -0.05, f"Green = above current price ${current_price:,.2f} (undervalued); boxed = base case. "
+                          "Gordon-growth TV. Author analysis.", fontsize=7.5, color=GREY)
+    return _save(fig, cfg, "07_dcf_sensitivity.png")
+
+
+def chart_football_field(cfg, ranges, current_price, target_price):
+    """ranges: list of (label, low, high). Horizontal range bars + price/target lines."""
+    labels = [r[0] for r in ranges]
+    lows = [r[1] for r in ranges]
+    highs = [r[2] for r in ranges]
+    y = np.arange(len(labels))[::-1]
+    fig, ax = plt.subplots(figsize=(8.6, 4.8))
+    for yi, lo, hi in zip(y, lows, highs):
+        ax.barh(yi, hi - lo, left=lo, height=0.5, color=TEAL, alpha=0.65, edgecolor=NAVY)
+        ax.text(lo, yi, f"${lo:,.0f} ", ha="right", va="center", fontsize=8, color=GREY)
+        ax.text(hi, yi, f" ${hi:,.0f}", ha="left", va="center", fontsize=8, color=GREY)
+    ax.axvline(current_price, color=GREY, ls="--", lw=1.4)
+    ax.text(current_price, len(labels) - 0.3, f" Current ${current_price:,.2f}", color=GREY, fontsize=8.5, va="bottom")
+    ax.axvline(target_price, color=RED, ls="-", lw=1.8)
+    ax.text(target_price, -0.7, f"Target ${target_price:,.0f}", color=RED, fontsize=9, fontweight="bold", ha="center")
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels, fontsize=9)
+    ax.set_xlabel("Implied value per share ($)")
+    ax.set_title("Football field: valuation by method")
+    ax.xaxis.set_major_formatter(mticker.FormatStrFormatter("$%d"))
+    _footnote(fig, "Source: author DCF & comps; 52-wk range and sell-side targets via yfinance.")
+    return _save(fig, cfg, "08_football_field.png")
+
+
+def chart_peer_multiples(cfg, comps_df, pypl_ev_ebitda, pypl_fwd_pe):
+    core = comps_df[comps_df["group"] == "core"].dropna(subset=["enterpriseToEbitda"])
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(9.2, 4.4))
+    # EV/EBITDA
+    names = list(core["name"]) + ["PayPal"]
+    ev = list(core["enterpriseToEbitda"]) + [pypl_ev_ebitda]
+    colors = [TEAL] * len(core) + [NAVY]
+    ax1.bar(range(len(names)), ev, color=colors)
+    ax1.set_xticks(range(len(names))); ax1.set_xticklabels(names, rotation=40, ha="right", fontsize=8)
+    ax1.set_title("EV / EBITDA"); ax1.axhline(core["enterpriseToEbitda"].median(), color=GREY, ls="--", lw=1)
+    for i, v in enumerate(ev): ax1.text(i, v + 0.4, f"{v:,.1f}", ha="center", fontsize=7.5)
+    # Forward P/E
+    corep = comps_df[comps_df["group"] == "core"].dropna(subset=["forwardPE"])
+    names2 = list(corep["name"]) + ["PayPal"]
+    pe = list(corep["forwardPE"]) + [pypl_fwd_pe]
+    colors2 = [TEAL] * len(corep) + [NAVY]
+    ax2.bar(range(len(names2)), pe, color=colors2)
+    ax2.set_xticks(range(len(names2))); ax2.set_xticklabels(names2, rotation=40, ha="right", fontsize=8)
+    ax2.set_title("Forward P/E"); ax2.axhline(corep["forwardPE"].median(), color=GREY, ls="--", lw=1)
+    for i, v in enumerate(pe): ax2.text(i, v + 0.2, f"{v:,.1f}", ha="center", fontsize=7.5)
+    fig.suptitle("PayPal trades at a steep discount to payment peers", fontweight="bold", fontsize=12.5)
+    _footnote(fig, "Core peers only (networks excluded). Dashed = peer median. Source: yfinance. Author analysis.")
+    return _save(fig, cfg, "09_peer_multiples.png")
+
+
 def generate_historical_charts(cfg, H, yahoo):
     setup_style()
     paths = [

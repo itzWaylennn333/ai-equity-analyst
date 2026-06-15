@@ -81,6 +81,19 @@ def get_yahoo(cfg: dict, ticker: str, force: bool = False) -> dict:
     return out
 
 
+def get_info(cfg: dict, ticker: str, force: bool = False) -> dict:
+    """Lightweight cached snapshot (.info) for a peer -- avoids pulling full statements."""
+    dcfg = cfg["data"]
+    path = f"{dcfg['cache_dir']}/yahoo/{ticker}/info.json"
+    if utils.cache_is_fresh(path, dcfg["cache_max_age_days"]) and not force:
+        return utils.load_json(path)
+    info = dict(yf.Ticker(ticker).info)
+    utils.save_json(info, path)
+    utils.record_provenance(dcfg["manifest"], "yahoo", ticker,
+                            url=f"https://finance.yahoo.com/quote/{ticker}", files=[path])
+    return info
+
+
 # --------------------------------------------------------------------------- #
 # SEC EDGAR
 # --------------------------------------------------------------------------- #

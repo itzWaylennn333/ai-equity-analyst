@@ -43,30 +43,38 @@ peers:
 
 valuation:
   horizon_years: 5             # explicit DCF window before terminal value
-  tax_rate: null               # TODO[P3] effective vs marginal; benchmark vs 10-K
+  tax_rate: 0.23               # normalized tax for NOPAT & FCFF (FY25 GAAP eff. 16.8% was
+                               # tax-credit flattered; US marginal ~24% -> normalize to 23%)
+  marginal_tax_rate: 0.24      # used for after-tax cost of debt in WACC
   sbc_treatment: "expense"     # treat stock-based comp as a REAL cost (do NOT add back)
+  net_debt_basis: "strict"     # strict = total debt - cash & equiv (conservative);
+                               # excludes pass-through customer funds & loans receivable
 
   terminal:
     method: "both"             # compute Gordon growth AND exit-multiple; show both
-    growth: null               # TODO[P3] g <= long-run nominal GDP
+    growth: 0.025              # 2.5%, well below the 4% cap and long-run nominal GDP
     growth_cap: 0.04           # HARD CAP (integrity guardrail enforced in tests/)
-    exit_ev_ebitda: null       # TODO[P3] peer exit EV/EBITDA for the exit-multiple TV
+    exit_ev_ebitda: 9.0        # provisional; refined from peer median in comps (Phase 3)
 
   wacc:
     risk_free_source: "live_10y_ust"  # pull current US 10Y Treasury yield live (^TNX)
-    equity_risk_premium: null         # TODO[P3] cite Damodaran current US ERP
-    erp_source: "Damodaran (vintage TBD)"
-    beta: null                        # TODO[P3] levered beta
-    beta_source: "yfinance, cross-checked vs regression on ^GSPC"
-    cost_of_debt: null                # TODO[P3] interest expense / total debt, or Rf + spread
+    risk_free_fallback: 0.0449         # 10Y UST as of 2026-06-15 pull, if live fetch fails
+    equity_risk_premium: 0.0423        # Damodaran implied ERP, S&P 500
+    erp_source: "Damodaran implied ERP (S&P 500), 4.23% as of 2026-01-01 vintage"
+    beta: 1.30                         # central est: 5y wkly 1.43, 2y wkly 1.22, yfinance 1.34
+    beta_source: "yfinance 1.336, cross-checked vs regression on ^GSPC (1.22-1.43)"
+    cost_of_debt: 0.0442               # FY25 interest expense / total debt (IG profile)
 
-  # Explicit projection drivers -- set & benchmarked against history/peers at Phase 3.
+  # Base-case projection drivers (FY2026E-FY2030E). Balanced ~4% growth posture.
+  # Benchmarked: revenue growth tapers from FY25's +4.3% (take-rate drag) but stays
+  # positive (volume + new monetization); margins drift up modestly on efficiency.
   projections:
-    revenue_growth: null     # TODO[P3] per-year list or CAGR
-    ebit_margin: null        # TODO[P3]
-    da_pct_revenue: null     # TODO[P3]
-    capex_pct_revenue: null  # TODO[P3]
-    nwc_pct_revenue: null    # TODO[P3] change in net working capital as % of revenue
+    revenue_growth:  [0.045, 0.045, 0.040, 0.038, 0.035]  # ~4.1% CAGR
+    ebit_margin:     [0.183, 0.184, 0.185, 0.186, 0.187]  # ~flat from FY25 GAAP 18.3%
+                                                          # (modest efficiency, mostly reinvested)
+    da_pct_revenue:  0.029     # FY25 D&A 2.9% of revenue
+    capex_pct_revenue: 0.026   # FY25 capex 2.6% of revenue (asset-light)
+    nwc_pct_revenue: 0.005     # modest working-capital drag (core ops, ex pass-through)
 
 # Bull / base / bear -- each a COHERENT set of assumption changes (not just +/-10%).
 scenarios:                   # TODO[P4]

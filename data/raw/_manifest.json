@@ -23,5 +23,68 @@
       "data/raw/edgar/CIK0001633917_facts.json"
     ],
     "retrieved_utc": "2026-06-15T04:41:50+00:00"
+  },
+  "yahoo:XYZ": {
+    "source": "yahoo",
+    "identifier": "XYZ",
+    "url": "https://finance.yahoo.com/quote/XYZ",
+    "files": [
+      "data/raw/yahoo/XYZ/info.json"
+    ],
+    "retrieved_utc": "2026-06-15T05:18:36+00:00"
+  },
+  "yahoo:FI": {
+    "source": "yahoo",
+    "identifier": "FI",
+    "url": "https://finance.yahoo.com/quote/FI",
+    "files": [
+      "data/raw/yahoo/FI/info.json"
+    ],
+    "retrieved_utc": "2026-06-15T05:23:25+00:00"
+  },
+  "yahoo:GPN": {
+    "source": "yahoo",
+    "identifier": "GPN",
+    "url": "https://finance.yahoo.com/quote/GPN",
+    "files": [
+      "data/raw/yahoo/GPN/info.json"
+    ],
+    "retrieved_utc": "2026-06-15T05:18:37+00:00"
+  },
+  "yahoo:ADYEN.AS": {
+    "source": "yahoo",
+    "identifier": "ADYEN.AS",
+    "url": "https://finance.yahoo.com/quote/ADYEN.AS",
+    "files": [
+      "data/raw/yahoo/ADYEN.AS/info.json"
+    ],
+    "retrieved_utc": "2026-06-15T05:18:37+00:00"
+  },
+  "yahoo:FIS": {
+    "source": "yahoo",
+    "identifier": "FIS",
+    "url": "https://finance.yahoo.com/quote/FIS",
+    "files": [
+      "data/raw/yahoo/FIS/info.json"
+    ],
+    "retrieved_utc": "2026-06-15T05:18:37+00:00"
+  },
+  "yahoo:V": {
+    "source": "yahoo",
+    "identifier": "V",
+    "url": "https://finance.yahoo.com/quote/V",
+    "files": [
+      "data/raw/yahoo/V/info.json"
+    ],
+    "retrieved_utc": "2026-06-15T05:18:38+00:00"
+  },
+  "yahoo:MA": {
+    "source": "yahoo",
+    "identifier": "MA",
+    "url": "https://finance.yahoo.com/quote/MA",
+    "files": [
+      "data/raw/yahoo/MA/info.json"
+    ],
+    "retrieved_utc": "2026-06-15T05:18:38+00:00"
   }
 }
