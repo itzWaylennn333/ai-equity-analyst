@@ -258,5 +258,30 @@
       ],
       "n_chunks": 146
     }
+  },
+  "yahoo:AAPL": {
+    "source": "yahoo",
+    "identifier": "AAPL",
+    "url": "https://finance.yahoo.com/quote/AAPL",
+    "files": [
+      "data/raw/yahoo/AAPL/income_annual.csv",
+      "data/raw/yahoo/AAPL/balance_annual.csv",
+      "data/raw/yahoo/AAPL/cashflow_annual.csv",
+      "data/raw/yahoo/AAPL/income_quarterly.csv",
+      "data/raw/yahoo/AAPL/balance_quarterly.csv",
+      "data/raw/yahoo/AAPL/cashflow_quarterly.csv",
+      "data/raw/yahoo/AAPL/prices.csv",
+      "data/raw/yahoo/AAPL/info.json"
+    ],
+    "retrieved_utc": "2026-06-15T13:07:33+00:00"
+  },
+  "edgar:0000320193": {
+    "source": "edgar",
+    "identifier": "0000320193",
+    "url": "https://data.sec.gov/api/xbrl/companyfacts/CIK0000320193.json",
+    "files": [
+      "data/raw/edgar/CIK0000320193_facts.json"
+    ],
+    "retrieved_utc": "2026-06-15T13:07:35+00:00"
   }
 }

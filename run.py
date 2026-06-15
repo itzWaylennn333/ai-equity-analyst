@@ -47,6 +47,11 @@ def main(ticker: str = "PYPL", render_pdf: bool = False) -> dict:
     info = yahoo["info"]
     if not comp.get("name") or comp["name"] == ticker:
         comp["name"] = info.get("longName") or ticker
+    comp["currency"] = info.get("financialCurrency") or info.get("currency") or comp.get("currency", "USD")
+    sym = utils.currency_symbol(comp["currency"])
+    if comp["currency"] != "USD":
+        print(f"[CURRENCY] reports in {comp['currency']}; WACC uses a USD risk-free/ERP as an "
+              "approximation (no FX/local-rate conversion yet) — interpret the DCF with care.")
 
     # Auto-detect sector template for UNCONFIGURED tickers (configured files win).
     if not registry.has_company_file(ticker):
@@ -56,12 +61,20 @@ def main(ticker: str = "PYPL", render_pdf: bool = False) -> dict:
 
     facts = dl.get_edgar_facts(cfg, cik)
     print(f"[1/6] Data: {comp['name']} | CIK {cik or 'n/a'} | sector '{comp['sector_template']}' "
-          f"| price ${info.get('currentPrice')}")
+          f"| price {sym}{info.get('currentPrice')}")
 
     # Historical analysis (always produced)
     H = fin.build_historical(cfg, yahoo, facts)
     H.to_csv(utils.resolve(cfg["data"]["processed_dir"]) / f"historical_{ticker}.csv")
     print(f"[2/6] Historical: FY{int(H.index.min())}-FY{int(H.index.max())}")
+    # Data validation: cross-check yfinance net income against EDGAR (ground truth).
+    if facts is not None:
+        ni_edgar = dl.edgar_annual_series(facts, ["NetIncomeLoss"])
+        disc = [(y, round(abs(H.loc[y, "net_income"] - v) / abs(v) * 100, 1))
+                for y, v in ni_edgar.items()
+                if y in H.index and pd.notna(H.loc[y, "net_income"]) and v
+                and abs(H.loc[y, "net_income"] - v) / abs(v) > 0.02]
+        print(f"[VALIDATE] net income vs EDGAR: " + (f"DIFFERS >2% {disc}" if disc else "ties (<=2%)"))
     charts.setup_style()
     charts.generate_historical_charts(cfg, H, yahoo)
 
@@ -77,7 +90,17 @@ def main(ticker: str = "PYPL", render_pdf: bool = False) -> dict:
     cash = H.loc[fy, "cash"] if pd.notna(H.loc[fy, "cash"]) else (info.get("totalCash") or 0)
     net_debt = total_debt - cash
     base_rev = H.loc[fy, "revenue"]
-    shares, price, mktcap = info["sharesOutstanding"], info["currentPrice"], info["marketCap"]
+    # Defensive market-data lookups: yfinance omits these for some (esp. non-US) tickers.
+    price = info.get("currentPrice") or info.get("regularMarketPrice") or info.get("previousClose")
+    mktcap = info.get("marketCap")
+    shares = info.get("sharesOutstanding")
+    if not shares and mktcap and price:
+        shares = mktcap / price
+    if not mktcap and shares and price:
+        mktcap = shares * price
+    if not (price and shares and mktcap and pd.notna(base_rev)):
+        print("[ERROR] missing price/shares/market-cap/revenue; produced historicals only.")
+        return {"cfg": cfg, "error": "missing market data", "historical": H}
 
     # Comps (peer median used for exit multiple; tolerate empty peer set)
     C = comps.build_comps(cfg) if cfg["peers"].get("core") else pd.DataFrame()
@@ -89,11 +112,11 @@ def main(ticker: str = "PYPL", render_pdf: bool = False) -> dict:
 
     # WACC + DCF
     W = wacc_mod.compute_wacc(cfg, mktcap, total_debt)
-    proj = dcf.project(cfg, base_rev)
+    proj = dcf.project(cfg, base_rev, base_year=fy)
     proj.to_csv(utils.resolve(cfg["data"]["processed_dir"]) / f"dcf_projection_{ticker}.csv")
     val = dcf.value(cfg, proj, W["wacc"], net_debt, shares, price)
-    print(f"[3/6] WACC {W['wacc']*100:.2f}%  |  DCF intrinsic "
-          f"${val['exit']['per_share']:.0f}-${val['gordon']['per_share']:.0f}/sh")
+    lo, hi = sorted([val["exit"]["per_share"], val["gordon"]["per_share"]])
+    print(f"[3/6] WACC {W['wacc']*100:.2f}%  |  DCF intrinsic {sym}{lo:.0f}-{sym}{hi:.0f}/sh")
     if len(C):
         print(f"[4/6] Comps: EV/EBITDA {info.get('enterpriseToEbitda')} vs peer median {peer_ev_ebitda:.1f}x")
     else:
@@ -102,8 +125,8 @@ def main(ticker: str = "PYPL", render_pdf: bool = False) -> dict:
     # Scenarios
     scen, summ = scenarios.run_scenarios(cfg, base_rev, W["wacc"], net_debt, shares, price)
     scen.to_csv(utils.resolve(cfg["output"]["tables_dir"]) / "scenarios.csv")
-    print(f"[5/6] Scenarios: bull ${summ['bull_pt']:.0f} / base ${summ['base_pt']:.0f} / "
-          f"bear ${summ['bear_pt']:.0f}  ->  prob-weighted ${summ['prob_weighted_target']:.0f} "
+    print(f"[5/6] Scenarios: bull {sym}{summ['bull_pt']:.0f} / base {sym}{summ['base_pt']:.0f} / "
+          f"bear {sym}{summ['bear_pt']:.0f}  ->  prob-weighted {sym}{summ['prob_weighted_target']:.0f} "
           f"({summ['prob_weighted_upside']*100:+.0f}%)")
 
     # Valuation charts (historical charts already generated above)
@@ -112,12 +135,20 @@ def main(ticker: str = "PYPL", render_pdf: bool = False) -> dict:
     grid = dcf.sensitivity(cfg, proj, net_debt, shares, waccs, gs)
     charts.chart_sensitivity_heatmap(cfg, grid, round(W["wacc"], 4),
                                      round(cfg["valuation"]["terminal"]["growth"], 4), price)
-    # Football field (only rows with available data)
-    ff = [("DCF (WACC/g sensitivity)", val["exit"]["per_share"], val["gordon"]["per_share"])]
-    if info.get("ebitda"):
-        ff.append(("Comps: EV/EBITDA (7x-10x)", (7*info["ebitda"]-net_debt)/shares, (10*info["ebitda"]-net_debt)/shares))
-    if info.get("forwardEps"):
-        ff.append(("Comps: Forward P/E (9x-12x)", 9*info["forwardEps"], 12*info["forwardEps"]))
+    # Football field (rows added only where data supports them; comps bands derived
+    # from the actual core-peer interquartile range, not hardcoded multiples).
+    ff = [("DCF (exit-Gordon)", val["exit"]["per_share"], val["gordon"]["per_share"])]
+    if len(C):
+        core_ev = C[C["group"] == "core"]["enterpriseToEbitda"].dropna()
+        core_pe = C[C["group"] == "core"]["forwardPE"].dropna()
+        if len(core_ev) >= 2 and info.get("ebitda") and info["ebitda"] > 0:
+            lo_m, hi_m = core_ev.quantile(0.25), core_ev.quantile(0.75)
+            ff.append((f"Comps EV/EBITDA ({lo_m:.0f}-{hi_m:.0f}x)",
+                       (lo_m*info["ebitda"]-net_debt)/shares, (hi_m*info["ebitda"]-net_debt)/shares))
+        if len(core_pe) >= 2 and info.get("forwardEps"):
+            lo_p, hi_p = core_pe.quantile(0.25), core_pe.quantile(0.75)
+            ff.append((f"Comps fwd P/E ({lo_p:.0f}-{hi_p:.0f}x)",
+                       lo_p*info["forwardEps"], hi_p*info["forwardEps"]))
     if info.get("targetLowPrice") and info.get("targetHighPrice"):
         ff.append(("Sell-side target range", info["targetLowPrice"], info["targetHighPrice"]))
     if info.get("fiftyTwoWeekLow") and info.get("fiftyTwoWeekHigh"):

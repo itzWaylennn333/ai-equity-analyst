@@ -25,7 +25,24 @@ LIGHT = "#cbd5e1"
 RED = "#c0392b"
 GREEN = "#1e8449"
 AMBER = "#d68910"
-SRC = "Source: SEC 10-K filings (FY2022-FY2025) & yfinance. Author analysis."
+SRC = "Source: SEC filings & yfinance. Author analysis."
+
+
+def _sym(cfg) -> str:
+    return utils.currency_symbol((cfg.get("company") or {}).get("currency"))
+
+
+def _name(cfg) -> str:
+    c = cfg.get("company") or {}
+    return c.get("name") or c.get("ticker") or "Company"
+
+
+def _src_years(H) -> str:
+    try:
+        yrs = [int(y) for y in H.index if str(y).isdigit()]
+        return f"Source: SEC filings & yfinance (FY{min(yrs)}-FY{max(yrs)}). Author analysis."
+    except Exception:
+        return SRC
 
 
 def setup_style():
@@ -67,31 +84,33 @@ def chart_price_history(cfg, prices, info):
     ax.plot(s.index, s.values, color=NAVY, lw=1.3)
     hi, lo = info.get("fiftyTwoWeekHigh"), info.get("fiftyTwoWeekLow")
     last = info.get("currentPrice")
+    sym = _sym(cfg)
     if hi and lo:
         ax.axhspan(lo, hi, color=TEAL, alpha=0.08)
         ax.axhline(hi, color=GREY, ls="--", lw=0.8)
         ax.axhline(lo, color=GREY, ls="--", lw=0.8)
-        ax.text(s.index[0], hi, f"  52-wk high ${hi:,.0f}", va="bottom", fontsize=8, color=GREY)
-        ax.text(s.index[0], lo, f"  52-wk low ${lo:,.0f}", va="top", fontsize=8, color=GREY)
+        ax.text(s.index[0], hi, f"  52-wk high {sym}{hi:,.0f}", va="bottom", fontsize=8, color=GREY)
+        ax.text(s.index[0], lo, f"  52-wk low {sym}{lo:,.0f}", va="top", fontsize=8, color=GREY)
     if last:
         ax.scatter([s.index[-1]], [last], color=RED, zorder=5)
-        ax.text(s.index[-1], last, f" ${last:,.2f}", va="center", color=RED, fontsize=9, fontweight="bold")
-    ax.set_title("PYPL share price (6 years)")
-    ax.yaxis.set_major_formatter(mticker.FormatStrFormatter("$%d"))
+        ax.text(s.index[-1], last, f" {sym}{last:,.2f}", va="center", color=RED, fontsize=9, fontweight="bold")
+    ax.set_title(f"{cfg['company'].get('ticker','')} share price (6 years)")
+    ax.yaxis.set_major_formatter(mticker.FormatStrFormatter(f"{sym}%d"))
     ax.set_ylabel("Share price")
     _footnote(fig, "Source: yfinance (auto-adjusted close). Author analysis.")
     return _save(fig, cfg, "01_price_history.png")
 
 
 def chart_revenue_growth(cfg, H):
+    sym = _sym(cfg)
     d = H.dropna(subset=["revenue"])
     yrs = d.index.astype(int)
     fig, ax = plt.subplots()
-    ax.bar(yrs, d["revenue"] / 1e9, color=NAVY, width=0.6, label="Net revenue ($B)")
-    ax.set_ylabel("Net revenue ($B)")
-    ax.set_title("Revenue growth is decelerating")
+    ax.bar(yrs, d["revenue"] / 1e9, color=NAVY, width=0.6, label=f"Revenue ({sym}B)")
+    ax.set_ylabel(f"Revenue ({sym}B)")
+    ax.set_title(f"{_name(cfg)}: revenue & YoY growth")
     for x, v in zip(yrs, d["revenue"] / 1e9):
-        ax.text(x, v + 0.3, f"${v:,.1f}B", ha="center", fontsize=8.5, color=NAVY)
+        ax.text(x, v + 0.3, f"{sym}{v:,.1f}B", ha="center", fontsize=8.5, color=NAVY)
     ax2 = ax.twinx()
     ax2.plot(yrs, d["revenue_growth"] * 100, color=AMBER, marker="o", lw=2, label="YoY growth (%)")
     ax2.set_ylabel("YoY revenue growth (%)", color=AMBER)
@@ -102,7 +121,7 @@ def chart_revenue_growth(cfg, H):
         if pd.notna(g):
             ax2.text(x, g + 0.4, f"{g:,.1f}%", ha="center", fontsize=8.5, color=AMBER)
     ax.set_xticks(yrs)
-    _footnote(fig)
+    _footnote(fig, _src_years(d))
     return _save(fig, cfg, "02_revenue_growth.png")
 
 
@@ -116,24 +135,25 @@ def chart_margins(cfg, H):
               ("net_margin", "Net margin", AMBER)]
     for col, lbl, c in series:
         ax.plot(yrs, d[col] * 100, marker="o", lw=1.8, color=c, label=lbl)
-    ax.set_title("Margins: operating leverage despite gross-margin pressure")
+    ax.set_title(f"{_name(cfg)}: margin trends")
     ax.set_ylabel("Margin (%)")
     ax.yaxis.set_major_formatter(mticker.PercentFormatter())
     ax.set_xticks(yrs)
     ax.legend(fontsize=8, ncol=2, loc="center left")
-    _footnote(fig)
+    _footnote(fig, _src_years(d))
     return _save(fig, cfg, "03_margins.png")
 
 
 def chart_fcf(cfg, H):
+    sym = _sym(cfg)
     d = H.dropna(subset=["fcf_reported"])
     yrs = d.index.astype(int)
     x = np.arange(len(yrs))
     fig, ax = plt.subplots()
     ax.bar(x - 0.2, d["fcf_reported"] / 1e9, width=0.4, color=NAVY, label="Reported FCF (OCF - capex)")
     ax.bar(x + 0.2, d["fcff"] / 1e9, width=0.4, color=TEAL, label="FCFF (SBC expensed, unlevered)")
-    ax.set_title("Free cash flow generation is substantial")
-    ax.set_ylabel("$B")
+    ax.set_title(f"{_name(cfg)}: free cash flow")
+    ax.set_ylabel(f"{sym}B")
     ax.set_xticks(x)
     ax.set_xticklabels(yrs)
     for xi, v in zip(x - 0.2, d["fcf_reported"] / 1e9):
@@ -141,7 +161,7 @@ def chart_fcf(cfg, H):
     for xi, v in zip(x + 0.2, d["fcff"] / 1e9):
         ax.text(xi, v + 0.1, f"{v:,.1f}", ha="center", fontsize=8, color=TEAL)
     ax.legend(fontsize=8, loc="upper left")
-    _footnote(fig)
+    _footnote(fig, _src_years(d))
     return _save(fig, cfg, "04_fcf.png")
 
 
@@ -168,14 +188,15 @@ def chart_tpv_takerate(cfg, H):
 
 
 def chart_shares_buybacks(cfg, H):
+    sym = _sym(cfg)
     d = H.dropna(subset=["diluted_shares"])
     yrs = d.index.astype(int)
     fig, ax = plt.subplots()
-    ax.bar(yrs, d["buybacks"] / 1e9, color=GREEN, width=0.6, label="Buybacks ($B)")
-    ax.set_ylabel("Share repurchases ($B)", color=GREEN)
+    ax.bar(yrs, d["buybacks"] / 1e9, color=GREEN, width=0.6, label=f"Buybacks ({sym}B)")
+    ax.set_ylabel(f"Share repurchases ({sym}B)", color=GREEN)
     ax.tick_params(axis="y", labelcolor=GREEN)
     for x, v in zip(yrs, d["buybacks"] / 1e9):
-        ax.text(x, v + 0.05, f"${v:,.1f}B", ha="center", fontsize=8.5, color=GREEN)
+        ax.text(x, v + 0.05, f"{sym}{v:,.1f}B", ha="center", fontsize=8.5, color=GREEN)
     ax2 = ax.twinx()
     ax2.plot(yrs, d["diluted_shares"] / 1e6, color=NAVY, marker="o", lw=2.2, label="Diluted shares (M)")
     ax2.set_ylabel("Diluted shares (M)", color=NAVY)
@@ -183,9 +204,9 @@ def chart_shares_buybacks(cfg, H):
     ax2.grid(False)
     for x, v in zip(yrs, d["diluted_shares"] / 1e6):
         ax2.text(x, v + 8, f"{v:,.0f}", ha="center", fontsize=8.5, color=NAVY)
-    ax.set_title("Aggressive buybacks shrinking the share count")
+    ax.set_title(f"{_name(cfg)}: share count & buybacks")
     ax.set_xticks(yrs)
-    _footnote(fig)
+    _footnote(fig, _src_years(d))
     return _save(fig, cfg, "06_shares_buybacks.png")
 
 
@@ -218,50 +239,50 @@ def chart_sensitivity_heatmap(cfg, grid, base_wacc, base_g, current_price):
 
 def chart_football_field(cfg, ranges, current_price, target_price):
     """ranges: list of (label, low, high). Horizontal range bars + price/target lines."""
+    sym = _sym(cfg)
+    # sort each (low, high) so the bar is always drawn min->max
+    ranges = [(lbl, *sorted([lo, hi])) for (lbl, lo, hi) in ranges]
     labels = [r[0] for r in ranges]
-    lows = [r[1] for r in ranges]
-    highs = [r[2] for r in ranges]
     y = np.arange(len(labels))[::-1]
     fig, ax = plt.subplots(figsize=(8.6, 4.8))
-    for yi, lo, hi in zip(y, lows, highs):
+    for yi, (lbl, lo, hi) in zip(y, ranges):
         ax.barh(yi, hi - lo, left=lo, height=0.5, color=TEAL, alpha=0.65, edgecolor=NAVY)
-        ax.text(lo, yi, f"${lo:,.0f} ", ha="right", va="center", fontsize=8, color=GREY)
-        ax.text(hi, yi, f" ${hi:,.0f}", ha="left", va="center", fontsize=8, color=GREY)
+        ax.text(lo, yi, f"{sym}{lo:,.0f} ", ha="right", va="center", fontsize=8, color=GREY)
+        ax.text(hi, yi, f" {sym}{hi:,.0f}", ha="left", va="center", fontsize=8, color=GREY)
     ax.axvline(current_price, color=GREY, ls="--", lw=1.4)
-    ax.text(current_price, len(labels) - 0.3, f" Current ${current_price:,.2f}", color=GREY, fontsize=8.5, va="bottom")
+    ax.text(current_price, len(labels) - 0.3, f" Current {sym}{current_price:,.2f}", color=GREY, fontsize=8.5, va="bottom")
     ax.axvline(target_price, color=RED, ls="-", lw=1.8)
-    ax.text(target_price, -0.7, f"Target ${target_price:,.0f}", color=RED, fontsize=9, fontweight="bold", ha="center")
+    ax.text(target_price, -0.7, f"Target {sym}{target_price:,.0f}", color=RED, fontsize=9, fontweight="bold", ha="center")
     ax.set_yticks(y)
     ax.set_yticklabels(labels, fontsize=9)
-    ax.set_xlabel("Implied value per share ($)")
-    ax.set_title("Football field: valuation by method")
-    ax.xaxis.set_major_formatter(mticker.FormatStrFormatter("$%d"))
+    ax.set_xlabel(f"Implied value per share ({sym})")
+    ax.set_title(f"{_name(cfg)}: football field (valuation by method)")
+    ax.xaxis.set_major_formatter(mticker.FormatStrFormatter(f"{sym}%d"))
     _footnote(fig, "Source: author DCF & comps; 52-wk range and sell-side targets via yfinance.")
     return _save(fig, cfg, "08_football_field.png")
 
 
-def chart_peer_multiples(cfg, comps_df, pypl_ev_ebitda, pypl_fwd_pe):
-    core = comps_df[comps_df["group"] == "core"].dropna(subset=["enterpriseToEbitda"])
+def chart_peer_multiples(cfg, comps_df, subj_ev_ebitda, subj_fwd_pe):
+    subj = cfg["company"].get("ticker", "Subject")
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(9.2, 4.4))
-    # EV/EBITDA
-    names = list(core["name"]) + ["PayPal"]
-    ev = list(core["enterpriseToEbitda"]) + [pypl_ev_ebitda]
-    colors = [TEAL] * len(core) + [NAVY]
-    ax1.bar(range(len(names)), ev, color=colors)
-    ax1.set_xticks(range(len(names))); ax1.set_xticklabels(names, rotation=40, ha="right", fontsize=8)
-    ax1.set_title("EV / EBITDA"); ax1.axhline(core["enterpriseToEbitda"].median(), color=GREY, ls="--", lw=1)
-    for i, v in enumerate(ev): ax1.text(i, v + 0.4, f"{v:,.1f}", ha="center", fontsize=7.5)
-    # Forward P/E
-    corep = comps_df[comps_df["group"] == "core"].dropna(subset=["forwardPE"])
-    names2 = list(corep["name"]) + ["PayPal"]
-    pe = list(corep["forwardPE"]) + [pypl_fwd_pe]
-    colors2 = [TEAL] * len(corep) + [NAVY]
-    ax2.bar(range(len(names2)), pe, color=colors2)
-    ax2.set_xticks(range(len(names2))); ax2.set_xticklabels(names2, rotation=40, ha="right", fontsize=8)
-    ax2.set_title("Forward P/E"); ax2.axhline(corep["forwardPE"].median(), color=GREY, ls="--", lw=1)
-    for i, v in enumerate(pe): ax2.text(i, v + 0.2, f"{v:,.1f}", ha="center", fontsize=7.5)
-    fig.suptitle("PayPal trades at a steep discount to payment peers", fontweight="bold", fontsize=12.5)
-    _footnote(fig, "Core peers only (networks excluded). Dashed = peer median. Source: yfinance. Author analysis.")
+
+    def _panel(ax, metric, subj_val, title):
+        core = comps_df[comps_df["group"] == "core"].dropna(subset=[metric])
+        names, vals, colors = list(core["name"]), list(core[metric]), [TEAL] * len(core)
+        if subj_val is not None and np.isfinite(subj_val):   # guard missing subject metric
+            names, vals, colors = names + [subj], vals + [float(subj_val)], colors + [NAVY]
+        ax.bar(range(len(names)), vals, color=colors)
+        ax.set_xticks(range(len(names))); ax.set_xticklabels(names, rotation=40, ha="right", fontsize=8)
+        ax.set_title(title)
+        if len(core):
+            ax.axhline(core[metric].median(), color=GREY, ls="--", lw=1)
+        for i, v in enumerate(vals):
+            ax.text(i, v + max(vals) * 0.02, f"{v:,.1f}", ha="center", fontsize=7.5)
+
+    _panel(ax1, "enterpriseToEbitda", subj_ev_ebitda, "EV / EBITDA")
+    _panel(ax2, "forwardPE", subj_fwd_pe, "Forward P/E")
+    fig.suptitle(f"{_name(cfg)}: valuation vs peers", fontweight="bold", fontsize=12.5)
+    _footnote(fig, "Core peers only (networks/anchors excluded). Dashed = peer median. Source: yfinance. Author analysis.")
     return _save(fig, cfg, "09_peer_multiples.png")
 
 

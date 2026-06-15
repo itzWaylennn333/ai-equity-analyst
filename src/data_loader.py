@@ -178,10 +178,30 @@ def edgar_annual_series(facts: dict, concepts, taxonomy: str = "us-gaap", unit: 
         if not series:
             continue
         out: dict[int, float] = {}
+        # 1) Clean calendar-year frames (CY2024 / CY2024Q4I) -- best when present.
         for e in series:
             m = _ANNUAL_FRAME.fullmatch(e.get("frame", ""))
             if m:
                 out[int(m.group(1))] = e["val"]
+        # 2) Supplement with fiscal-year 10-K annual entries (handles off-calendar FYE,
+        #    e.g. May year-ends, and concepts the frames API doesn't expose). Does NOT
+        #    override clean frame values; keeps the latest-filed entry per fiscal year.
+        fy_best: dict[int, dict] = {}
+        for e in series:
+            if e.get("form") != "10-K" or e.get("fp") != "FY" or not e.get("fy"):
+                continue
+            start, end = e.get("start"), e.get("end")
+            if start and end:  # flows: require an ~annual window
+                try:
+                    if (_dt.date.fromisoformat(end) - _dt.date.fromisoformat(start)).days < 300:
+                        continue
+                except Exception:
+                    pass
+            fy = int(e["fy"])
+            if fy not in fy_best or e.get("filed", "") > fy_best[fy].get("filed", ""):
+                fy_best[fy] = e
+        for fy, e in fy_best.items():
+            out.setdefault(fy, e["val"])
         if out:
             return dict(sorted(out.items()))
     return {}

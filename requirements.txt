@@ -15,6 +15,10 @@ yfinance==1.4.1
 scipy==1.16.3
 Jinja2==3.1.6
 
+# --- interface (platform P3) ---
+streamlit
+plotly
+
 # --- document ingestion (platform P2) ---
 pdfplumber
 python-docx

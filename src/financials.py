@@ -53,12 +53,19 @@ def build_historical(cfg: dict, yahoo: dict, edgar_facts: dict | None = None) ->
     H["diluted_shares"] = _row(inc, "Diluted Average Shares")
     H["da"] = _row(inc, "Reconciled Depreciation")
 
-    # --- GAAP operating income from EDGAR (validated; overrides yfinance) ---
-    if edgar_facts is not None:
-        op = dl.edgar_annual_series(edgar_facts, ["OperatingIncomeLoss"])
-        H["operating_income"] = pd.Series(op).reindex(H.index)
-    else:
-        H["operating_income"] = _row(inc, "Operating Income")
+    # --- GAAP operating income: prefer EDGAR (validated); FALL BACK to yfinance for
+    # any year EDGAR doesn't supply. Critical: many US filers (e.g. XOM, AAPL) do NOT
+    # tag the exact us-gaap:OperatingIncomeLoss concept, which would otherwise leave the
+    # column all-NaN and collapse the auto-derived margin to a fabricated default. ---
+    op = dl.edgar_annual_series(edgar_facts, ["OperatingIncomeLoss"]) if edgar_facts is not None else {}
+    edgar_op = pd.Series(op, dtype="float64").reindex(H.index)
+    yf_op = _row(inc, "Operating Income")
+    H["operating_income"] = edgar_op
+    if len(yf_op):
+        H["operating_income"] = H["operating_income"].fillna(yf_op.reindex(H.index))
+    # provenance: which years came from EDGAR vs yfinance
+    H["op_income_source"] = np.where(edgar_op.notna(), "EDGAR",
+                                     np.where(H["operating_income"].notna(), "yfinance", "missing"))
 
     # --- Cash flow ---
     H["ocf"] = _row(cf, "Operating Cash Flow")

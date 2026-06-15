@@ -62,7 +62,8 @@ def ensure_assumptions(cfg: dict, H: pd.DataFrame, info: dict,
     horizon = v["horizon_years"]
 
     rev = H["revenue"].dropna()
-    hist_cagr = ((rev.iloc[-1] / rev.iloc[0]) ** (1 / (len(rev) - 1)) - 1) if len(rev) >= 2 else 0.03
+    hist_cagr = (((rev.iloc[-1] / rev.iloc[0]) ** (1 / (len(rev) - 1)) - 1)
+                 if (len(rev) >= 2 and rev.iloc[0] > 0) else 0.03)
     hist_cagr = _clip(hist_cagr, -0.02, 0.20, 0.03)
     base_margin = _clip(_recent_mean(H["operating_income"] / H["revenue"]), 0.02, 0.45, 0.12)
     base_tax = _clip(_recent_mean(H["tax_provision"] / H["pretax_income"]), 0.12, 0.30, 0.23)

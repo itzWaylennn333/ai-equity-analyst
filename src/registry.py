@@ -84,12 +84,18 @@ def detect_sector_template(info: dict) -> str:
     """
     sector = (info.get("sector") or "").lower()
     industry = (info.get("industry") or "").lower()
+    rev = info.get("totalRevenue") or 0
     if sector == "real estate" or "reit" in industry:
         return "reit"
     fin_kw = ("bank", "insurance", "insurer", "capital markets", "asset management",
-              "mortgage", "financial conglomerate", "financial data")
+              "mortgage", "financial conglomerate", "financial data", "credit services - diversified",
+              "closed-end fund", "shell companies")
+    # Note: payment/credit processors (e.g. PYPL, 'Credit Services') stay 'standard' -- DCF applies.
     if any(k in industry for k in fin_kw):
         return "financials"
+    # Pre-revenue / clinical-stage biotech: binary clinical valuation, not fundamental DCF.
+    if ("biotechnology" in industry or "drug manufacturers" in industry) and rev < 5e7:
+        return "biotech_dev"
     return "standard"
 
 

@@ -127,6 +127,18 @@ def record_provenance(
     save_json(manifest, mp)
 
 
+_CCY_SYMBOLS = {"USD": "$", "EUR": "€", "GBP": "£", "JPY": "¥", "CNY": "¥",
+                "HKD": "HK$", "SGD": "S$", "AUD": "A$", "CAD": "C$", "CHF": "CHF ", "INR": "₹",
+                "KRW": "₩", "BRL": "R$", "TWD": "NT$"}
+
+
+def currency_symbol(code: str | None) -> str:
+    """Display symbol for a currency code (defaults to the code + space, '$' for USD)."""
+    if not code:
+        return "$"
+    return _CCY_SYMBOLS.get(str(code).upper(), f"{code} ")
+
+
 def fmt_money(x: float, unit: str = "B") -> str:
     """Format a raw dollar figure into $B (default) or $M for display."""
     if x is None:
