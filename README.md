@@ -72,35 +72,48 @@ streamlit run app.py
   that declines a FCFF DCF for banks/insurers/REITs/pre-revenue biotech; currency-aware.
 - **Document ingestion:** `src/ingest.py` parses uploaded PDF/HTML/DOCX/XLSX/CSV/TXT into
   classified, chunked, provenance-tagged records (feeds RAG/extraction in later phases).
+- **Sentiment (P4, live):** `src/sentiment.py` scores ingested chunks for *directional*
+  tone + conviction + aspects. Three tiers behind one shape — `lexicon` (default, no deps),
+  `finbert` (optional), and `llm` (graded, via an Ollama endpoint). On the **NVIDIA DGX Spark
+  (GB10)** the `llm` tier runs `qwen3:30b-a3b-instruct-2507` locally at ~89 tok/s (see
+  `docs/ARCHITECTURE.md` §11 for the bandwidth-aware, MoE-first model rationale).
 - **Design & roadmap:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (6-layer system,
   interface, local-LLM stack); technique research + citations in
-  [`docs/RESEARCH.md`](docs/RESEARCH.md). Built so far: P1 generalize, P2 ingestion,
-  P3 interface. Next: P4 sentiment → P5 credibility → P6 RAG+agents → P7 predictive → P8 synthesis.
+  [`docs/RESEARCH.md`](docs/RESEARCH.md). Built so far: **P1** generalize, **P2** ingestion,
+  **P3** interface, **P4** sentiment. Next: P5 credibility → P6 RAG+agents → P7 predictive → P8 synthesis.
 
 _Use an isolated environment (the project uses a conda env `equity-analyzer`)._
 
 ## Project structure
 ```
 equity-research-PYPL/
-├── README.md  BRIEF.md  config.yaml  requirements.txt
-├── run.py                    # one-command end-to-end reproduce (added across phases)
+├── README.md  BRIEF.md  CLAUDE.md  config.yaml  requirements.txt
+├── run.py                    # one-command end-to-end valuation (any ticker; --pdf)
+├── app.py                    # Streamlit interface (tunable sliders → live charts → report)
+├── companies/                # per-ticker configs (PYPL.yaml locked; _TEMPLATE.yaml to add one)
+├── docs/
+│   ├── ARCHITECTURE.md       # 6-layer platform design + local-LLM stack + roadmap
+│   └── RESEARCH.md           # technique choices + primary-source citations
 ├── data/
 │   ├── raw/                  # cached API pulls + _manifest.json (provenance)
-│   └── processed/            # cleaned data the model consumes
+│   └── processed/            # cleaned data + ingested document chunks
 ├── src/
 │   ├── utils.py              # config loader, caching, provenance manifest
+│   ├── registry.py           # company registry load + sector detection
+│   ├── assumptions.py        # auto-derive assumptions when not locked
 │   ├── data_loader.py        # yfinance / EDGAR pulls + caching + validation
 │   ├── financials.py         # historical growth, margins, ratios, FCF
 │   ├── wacc.py               # CAPM cost of equity, cost of debt, WACC
 │   ├── dcf.py                # projections, FCFF, terminal value, PV, sensitivity
 │   ├── comps.py              # peer multiples + implied valuation
 │   ├── scenarios.py          # bull / base / bear, probability-weighted target
-│   └── charts.py             # all chart generation
+│   ├── ingest.py             # parse/classify/chunk uploaded docs (+ provenance)
+│   ├── sentiment.py          # directional sentiment: lexicon / finbert / local-LLM (P4)
+│   ├── charts.py             # all chart generation
+│   └── render.py             # markdown → PDF (pandoc + LaTeX)
 ├── tests/                    # integrity & sanity checks (incl. terminal-growth cap)
-├── notebooks/analysis.ipynb  # exploratory sanity checks
-├── outputs/
-│   ├── charts/  tables/      # generated figures & tables
-│   └── research_note.pdf     # THE DELIVERABLE
+├── notebooks/                # exploratory sanity checks
+├── outputs/                  # generated charts/ tables/ + research_note.pdf (per-ticker)
 └── note/
     ├── research_note.md       # the written note (source)
     └── assumptions.md         # every key assumption, value, and justification
@@ -119,4 +132,6 @@ equity-research-PYPL/
 - Every figure in the note traces to a cited source or an explicit stated assumption.
 - Terminal growth is hard-capped at long-run nominal GDP; enforced in `tests/`.
 
-_Environment: Anaconda Python 3.13.9 at `C:\Users\wayle\anaconda3\python.exe` (Windows 11)._
+_Environment: conda env `equity-analyzer` (Python 3.13). Developed on Windows 11; also runs
+natively on the **NVIDIA DGX Spark** (aarch64 / GB10) for local LLM inference — see
+`CLAUDE.md` and `docs/ARCHITECTURE.md` §11._

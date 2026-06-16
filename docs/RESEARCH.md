@@ -112,11 +112,21 @@ Sharpe, PBO net of costs. **Do NOT claim** price targets, precise forecasts, mar
 nothing per token for bulk work, and is fast; route only the hardest final reasoning to cloud
 (redacted). Hybrid reportedly ~61% cheaper / ~40% lower latency than cloud-only.
 
-1. **Models (GGUF Q4_K_M).** **Qwen2.5/Qwen3** = best all-round local family (stable tool-calling,
-   clean JSON, Apache-2.0) — huggingface.co/Qwen. Llama-3.1/3.3 strong alt (3.3-70B ≈ 2023 GPT-4,
-   ~48GB Q4). Phi-4 (14B) punches above weight at 8–16GB. DeepSeek leads hard math. Picks:
-   8GB→Qwen2.5-7B; 16GB→Qwen2.5-14B/Phi-4; **24GB→Qwen2.5-32B (primary)**; CPU→Qwen2.5-7B (batch).
-   Prefer a strong general model + RAG over a small fine-tune for analysis.
+1. **Models.** **Qwen3 / Qwen3.6** = best all-round local family (stable tool-calling, clean
+   JSON, Apache-2.0) — huggingface.co/Qwen. Llama-3.3, Phi-4, DeepSeek, and OpenAI's open
+   **gpt-oss** (20B/120B, MoE) are credible alternatives. **Pick by deployment, not by a single
+   "biggest that fits" rule** — see the hardware note below.
+   - **VRAM-bound GPUs (discrete, ≤24–48 GB):** a strong dense model is fine; classic picks
+     8GB→7-8B, 16GB→14B/Phi-4, 24GB→32B.
+   - **Bandwidth-bound unified memory (e.g. NVIDIA DGX Spark / GB10, 128 GB @ ~273 GB/s):**
+     capacity is ample but bandwidth caps decode, so **prefer MoE (few *active* params).**
+     Measured on a GB10 (2026-06-16): dense `qwen2.5:32b` ≈ 9–11 tok/s vs MoE
+     `qwen3:30b-a3b-instruct-2507` (3.3 B active) ≈ **89 tok/s** — ~8× for comparable quality.
+     `gpt-oss-120b` (5.1 B active) ≈ 41 tok/s is the max-quality tier that still fits.
+   Prefer a strong general model + RAG over a small fine-tune for analysis. **JSON hygiene
+   matters: for an unguarded `json.loads` path, use a *non-thinking instruct* checkpoint**
+   (e.g. `…-instruct-2507`); hybrid-thinking models (Qwen3.6) need grammar-guided decoding or
+   thinking left on, and have an open Ollama `format`+`think:false` bug (#14645).
 2. **Serving.** **Ollama** (easiest; GGUF; OpenAI-compatible; structured output) for dev;
    **llama.cpp** (CPU + grammars); **vLLM** (fastest GPU, batching) when concurrency grows; LM
    Studio (GUI). Quantization: Q4_K_M default, Q5 if VRAM allows; avoid <Q4 for numeric reasoning.
@@ -129,9 +139,11 @@ nothing per token for bulk work, and is fast; route only the hardest final reaso
 5. **Reliability.** Constrained decoding + Pydantic validation w/ retry; require chunk-ID/source
    citations; "not found" over hallucination; **deterministic Python layer owns all arithmetic.**
 
-**Recommended (24GB):** Qwen2.5-32B on Ollama → PydanticAI agents w/ Instructor/Outlines →
-LangGraph workflows → bge-m3 + LanceDB + BM25 + bge-reranker. 16GB → Qwen2.5-14B/Phi-4; CPU →
-Qwen2.5-7B batch. Graduate to vLLM with scale.
+**Recommended (DGX Spark / GB10, the deployment target):** `qwen3:30b-a3b-instruct-2507` on
+**Ollama** for the synchronous strict-JSON path (sentiment/extraction) → **vLLM** serving
+`qwen3.6:35b-a3b` / `gpt-oss-120b` for the agentic/RAG layer (guided JSON, tool-calling, 256K
+ctx) → PydanticAI agents w/ Instructor/Outlines → LangGraph workflows → bge-m3 + LanceDB + BM25
++ bge-reranker. On a discrete 24 GB GPU instead, a dense 32B on Ollama is the equivalent pick.
 
 ---
 

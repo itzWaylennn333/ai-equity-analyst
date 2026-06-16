@@ -1,0 +1,8 @@
+# Normalize line endings — store text as LF in the repo, check out native per-OS.
+# (Clears the CRLF churn introduced by the Windows->Linux NVIDIA Sync transfer.)
+* text=auto
+
+# Binary assets — never touch line endings.
+*.png binary
+*.pdf binary
+*.ico binary
