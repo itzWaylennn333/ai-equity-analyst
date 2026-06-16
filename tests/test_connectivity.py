@@ -5,7 +5,7 @@ Not a unit test of the model -- just a network/data-source reachability check.
 """
 import sys
 
-SEC_HEADERS = {"User-Agent": "AI Equity Analyst research@example.com"}
+SEC_HEADERS = {"User-Agent": "AI Equity Analyst research@example.com"}  # set to your own contact per SEC fair-access
 PYPL_CIK = "0001633917"
 
 

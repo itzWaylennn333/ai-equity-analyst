@@ -87,7 +87,7 @@ _Use an isolated environment (the project uses a conda env `equity-analyzer`)._
 ## Project structure
 ```
 equity-research-PYPL/
-├── README.md  BRIEF.md  CLAUDE.md  config.yaml  requirements.txt
+├── README.md  BRIEF.md  config.yaml  requirements.txt
 ├── run.py                    # one-command end-to-end valuation (any ticker; --pdf)
 ├── app.py                    # Streamlit interface (tunable sliders → live charts → report)
 ├── companies/                # per-ticker configs (PYPL.yaml locked; _TEMPLATE.yaml to add one)
@@ -132,6 +132,5 @@ equity-research-PYPL/
 - Every figure in the note traces to a cited source or an explicit stated assumption.
 - Terminal growth is hard-capped at long-run nominal GDP; enforced in `tests/`.
 
-_Environment: conda env `equity-analyzer` (Python 3.13). Developed on Windows 11; also runs
-natively on the **NVIDIA DGX Spark** (aarch64 / GB10) for local LLM inference — see
-`CLAUDE.md` and `docs/ARCHITECTURE.md` §11._
+_Environment: conda env `equity-analyzer` (Python 3.13). Also runs natively on the
+**NVIDIA DGX Spark** (aarch64 / GB10) for local LLM inference — see `docs/ARCHITECTURE.md` §11._

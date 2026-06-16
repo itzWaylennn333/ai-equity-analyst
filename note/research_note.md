@@ -1,7 +1,7 @@
 ---
 title: "PayPal Holdings, Inc. (PYPL) — Initiating Coverage"
 subtitle: "The market is pricing a melting ice cube; we see a mispriced cash machine"
-author: "Equity Research — Equity Research"
+author: "Equity Research"
 date: "15 June 2026"
 ---
 

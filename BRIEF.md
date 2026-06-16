@@ -4,8 +4,7 @@
 > the engine is what makes the note trustworthy.
 
 ## 1. Role and intent
-An experienced equity research analyst + strong Python engineer, helping the analyst
-(final-year engineering student) build a portfolio-grade
+An experienced equity research analyst + strong Python engineer, building a portfolio-grade
 equity research note. Target: finance analyst roles (equity research, IBD, markets)
 for 2027 summer recruiting. The artifact must prove the ability to think like an
 analyst: form a view on a company, value it properly, and defend it. It is a
@@ -74,7 +73,7 @@ reproducible. Refinements added vs the original tree: `run.py` one-command
 orchestrator, `data/raw/_manifest.json` provenance log, `tests/` integrity checks
 (incl. terminal-growth cap guard), `src/utils.py` shared helpers.
 
-## 9. Phasing & checkpoints (◆ = stop for the analyst)
+## 9. Phasing & checkpoints (◆ = review checkpoint)
 - **P0 Setup & plan** — questions, scaffold, config, requirements, BRIEF. ◆ pick company + confirm plan.
 - **P1 Data & historical analysis** — pull/cache/validate; build historical picture + charts. ◆ review summary + gaps.
 - **P2 Thesis formation** — articulate thesis (2–4 args) + steelmanned bear case. ◆ lock thesis + rating direction.
@@ -119,4 +118,4 @@ from config with benchmarked assumptions; named-peer comps + football field;
 bull/base/bear with probability-weighted target; genuine (non-strawman) bear case;
 every figure sourced or stated; `assumptions.md` logs every input + justification;
 `README.md` explains thesis + reproduction; clean modular config-driven cached code;
-the analyst has reviewed and can defend thesis, assumptions, and final call.
+The analyst has reviewed and can defend thesis, assumptions, and final call.

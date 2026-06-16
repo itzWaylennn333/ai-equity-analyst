@@ -12,7 +12,7 @@ data:
   cache_dir: "data/raw"
   processed_dir: "data/processed"
   manifest: "data/raw/_manifest.json"
-  sec_user_agent: "AI Equity Analyst research@example.com"
+  sec_user_agent: "AI Equity Analyst research@example.com"   # SEC EDGAR fair-access: set to your own name + email
   ticker_cik_map: "https://www.sec.gov/files/company_tickers.json"
   price_history_years: 6
   financials_years: 5
