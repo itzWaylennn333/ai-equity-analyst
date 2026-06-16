@@ -132,21 +132,100 @@ def score_texts_finbert(texts: list[str]) -> list[dict]:
     return out
 
 
-def score_text_llm(text: str, endpoint: str, model: str) -> dict:
-    """Graded sentiment + aspects via an Ollama-compatible /api/chat endpoint (JSON mode)."""
+# JSON Schema for Ollama structured outputs -- constrains decoding to valid,
+# parseable JSON. Far more robust than plain {"format": "json"}, which some
+# reasoning models silently ignore (e.g. the Qwen3.x think:false interaction).
+_LLM_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "tone": {"type": "number"},
+        "conviction": {"type": "number"},
+        "aspects": {
+            "type": "array",
+            "items": {"type": "object",
+                      "properties": {"aspect": {"type": "string"}, "tone": {"type": "number"}},
+                      "required": ["aspect", "tone"]},
+        },
+        "rationale": {"type": "string"},
+    },
+    "required": ["tone", "conviction", "aspects", "rationale"],
+}
+
+
+def _first_json_object(s: str) -> str | None:
+    """First balanced top-level {...} substring (string/escape aware), or None."""
+    depth, start = 0, -1
+    in_str = esc = False
+    for i, c in enumerate(s):
+        if in_str:
+            if esc:
+                esc = False
+            elif c == "\\":
+                esc = True
+            elif c == '"':
+                in_str = False
+            continue
+        if c == '"':
+            in_str = True
+        elif c == "{":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif c == "}" and depth:
+            depth -= 1
+            if depth == 0:
+                return s[start:i + 1]
+    return None
+
+
+def _parse_llm_json(raw: str) -> dict:
+    """Best-effort JSON from a model reply, tolerant of 'thinking' models.
+
+    Strips <think>...</think> spans, then tries the whole string, then the first
+    balanced object. Raises ValueError if nothing parses.
+    """
     import json
+    if not raw:
+        raise ValueError("empty response")
+    cleaned = re.sub(r"<think>.*?</think>", "", raw, flags=re.DOTALL).strip()
+    for candidate in (cleaned, _first_json_object(cleaned)):
+        if candidate:
+            try:
+                return json.loads(candidate)
+            except Exception:
+                continue
+    raise ValueError("no parseable JSON object in response")
+
+
+def score_text_llm(text: str, endpoint: str, model: str, *, retries: int = 1) -> dict:
+    """Graded sentiment + aspects via an Ollama-compatible /api/chat endpoint.
+
+    Hardened for reasoning/'thinking' models: requests schema-constrained JSON,
+    reads message.content (falling back to message.thinking), strips <think>
+    blocks, and extracts the first balanced JSON object. A chunk that still won't
+    parse after one retry degrades to a neutral, non-polar score (polar=0) so a
+    single bad response can't abort or skew the whole run -- this never raises.
+    """
     import requests
     prompt = ("You are a sell-side equity analyst. Read the excerpt and return STRICT JSON: "
               '{"tone": <float -1..1, bearish..bullish>, "conviction": <float 0..1>, '
               '"aspects": [{"aspect": str, "tone": float}], "rationale": str}. Excerpt:\n\n' + text[:4000])
-    r = requests.post(f"{endpoint.rstrip('/')}/api/chat", timeout=120, json={
-        "model": model, "format": "json", "stream": False,
-        "messages": [{"role": "user", "content": prompt}]})
-    r.raise_for_status()
-    data = json.loads(r.json()["message"]["content"])
-    data.setdefault("tone", 0.0)
-    data["polar"] = 1
-    return data
+    payload = {"model": model, "format": _LLM_SCHEMA, "stream": False,
+               "messages": [{"role": "user", "content": prompt}]}
+    last_err: Exception | None = None
+    for _ in range(retries + 1):
+        try:
+            r = requests.post(f"{endpoint.rstrip('/')}/api/chat", timeout=120, json=payload)
+            r.raise_for_status()
+            msg = r.json().get("message", {}) or {}
+            data = _parse_llm_json(msg.get("content") or msg.get("thinking") or "")
+            data["tone"] = float(np.clip(data.get("tone", 0.0), -1.0, 1.0))
+            data["polar"] = 1
+            return data
+        except Exception as e:  # network, HTTP, or parse failure -> retry then degrade
+            last_err = e
+    return {"tone": 0.0, "polar": 0, "conviction": 0.0, "aspects": [],
+            "rationale": f"llm parse/call failed: {last_err}", "error": True}
 
 
 # --------------------------------------------------------------------------- #

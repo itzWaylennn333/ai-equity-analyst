@@ -28,10 +28,10 @@ erp:
 # - finbert: ProsusAI/finbert via transformers (needs `pip install transformers torch`)
 # - llm: graded sentiment + aspects via an Ollama-compatible endpoint (e.g. the DGX Spark)
 sentiment:
-  method: "lexicon"
+  method: "llm"
   lexicon_path: null            # point at the Loughran-McDonald master CSV for full coverage
-  llm_endpoint: "http://localhost:11434"   # Ollama-compatible; set to the DGX Spark's address
-  llm_model: "qwen2.5:32b"
+  llm_endpoint: "http://localhost:11434"   # Ollama-compatible; localhost = running on the DGX Spark itself
+  llm_model: "qwen3:30b-a3b-instruct-2507-q4_K_M"   # MoE 3.3B-active: clean non-thinking JSON, ~8x faster than dense 32B on GB10's bandwidth wall
 
 # Default valuation skeleton. Company files override; `null` -> derived from history.
 defaults:

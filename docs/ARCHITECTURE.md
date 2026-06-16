@@ -181,6 +181,13 @@ aspect and by source-type (filing/call/news/social), each with a confidence.
 > decay; weight filings/calls above social; pin model cutoffs to avoid look-ahead;
 > Loughran–McDonald and some model weights have licensing limits for commercial use.
 
+**Implemented today (`src/sentiment.py`, P4 done).** Three interchangeable tiers behind one
+output shape: `lexicon` (L&M-style seed, zero-dep default), `finbert` (optional), and `llm`
+(graded tone + conviction + open aspects + rationale via Ollama — **live on the Spark**, see
+§11). Aspect attribution and source-type weighting (filings > calls > news > social) are in;
+Δtone-vs-prior is wired (`prior_tone`). Still aspirational: tone-vs-consensus, PyABSA/SetFit
+conviction head, and the z-scoring/event-study calibration — these layer on in P5/P7.
+
 ---
 
 ## 5. Layer 2b — Signal vs. noise & **source credibility**
@@ -337,29 +344,61 @@ pandoc/tectonic pipeline), so the exported note always matches what's on screen.
 
 ---
 
-## 11. Local-LLM & agentic stack (recommended)
+## 11. Local-LLM & agentic stack (DGX Spark — empirically tuned 2026-06-16)
 
-**Recommendation: yes, local-first with a cloud escape hatch.** Uploaded filings/models
-are sensitive; local inference keeps them on the machine, costs nothing per token for
-bulk extraction, and is fast enough. Route only the hardest final reasoning to a cloud
-model (sensitive spans redacted) if quality demands.
+**Deployment target: NVIDIA DGX Spark (GB10, 128 GB unified LPDDR5X).** The whole platform
+— code *and* inference — runs natively on the Spark (aarch64); private filings never leave
+the box. Cloud is an optional escape hatch for the hardest final reasoning only (sensitive
+spans redacted).
 
-| Tier | Model (GGUF Q4_K_M) | Runtime | Use |
+**The one hardware fact that drives every model choice: the GB10 is *bandwidth*-bound, not
+*capacity*-bound.** 128 GB of unified memory fits almost anything, but at **~273 GB/s** a
+**dense** model must stream *all* its weights per token, so throughput collapses as size
+grows (measured here: dense `qwen2.5:32b` ≈ **9–11 tok/s**). A **Mixture-of-Experts** model
+reads only its few *active* params per token and is **~8× faster at comparable quality**
+(measured: `qwen3:30b-a3b-instruct-2507`, 3.3 B active ≈ **89 tok/s** warm). →
+**Principle: MoE-first; choose by *active* params, not total size.** This inverts the old
+"biggest dense model that fits" heuristic that the previous draft assumed.
+
+**Two serving runtimes, split by job:**
+
+| Runtime | Model(s) | Used for | Why this runtime |
 |---|---|---|---|
-| 24GB GPU (recommended) | **Qwen2.5-32B-Instruct** | **Ollama** (OpenAI-compatible) | primary reasoning/extraction |
-| 16GB | Qwen2.5-14B / Phi-4-14B | Ollama | strong sweet spot |
-| 8GB | Qwen2.5-7B | Ollama | extraction, classification |
-| CPU-only | Qwen2.5-7B / Llama-3.1-8B | llama.cpp (batch) | non-interactive extraction |
-| Scale-out | (same) | **vLLM** | when concurrency grows |
+| **Ollama** (`:11434`) | `qwen3:30b-a3b-instruct-2507` (non-thinking instruct) | synchronous strict-JSON path: **sentiment, doc classification, figure extraction** | one-line pulls, OpenAI-compatible, schema-constrained `format`; *non-thinking* → clean `json.loads`, no `<think>` leakage |
+| **vLLM** (separate port) | `qwen3.6:35b-a3b` / `gpt-oss-120b` (FP8 / NVFP4) | **agentic + RAG layer (P6)**: tool-calling, multi-step reasoning, batch drafting | guided-JSON + reasoning parsers, high concurrency, 256K context; sidesteps Ollama's thinking-+-`format` bug (#14645) |
+
+**Model roster (all local on the one box), by task tier:**
+
+| Tier | Model | Arch / active params | ~tok/s on GB10 | Task |
+|---|---|---|---|---|
+| Light | `qwen2.5:0.5b` (or similar) | dense, <1 B | very fast | smoke tests, trivial classify |
+| **Workhorse** | **`qwen3:30b-a3b-instruct-2507`** (Q4_K_M) | MoE, **3.3 B** | **~89** | sentiment, extraction, classification (Ollama) |
+| Frontier | `qwen3.6:35b-a3b` | MoE, ~3 B | ~80 (vLLM) | agentic reasoning, tool use, RAG drafting |
+| Max-quality | `gpt-oss-120b` (MXFP4) | MoE, 5.1 B | ~41 | hardest final reasoning / audit tier |
+
+**Structured-output contract (platform-wide).** Every LLM call requests schema-constrained
+output **and** passes through a defensive parser: strip `<think>` spans → fall back to
+`message.thinking` → extract the first balanced `{…}` → one bounded retry → degrade to a
+neutral / "not found" result rather than raising. Already implemented in
+`sentiment.py:score_text_llm`; this is the template all P6 agents reuse (via PydanticAI +
+Outlines) so a single bad generation can never abort or silently corrupt a run.
 
 - **Agents/structured output:** `PydanticAI` + `Instructor`/`Outlines` (guaranteed JSON).
 - **RAG:** `bge-m3` embeddings (dense+sparse) + **LanceDB** (embedded, on-disk) + BM25
-  hybrid + `bge-reranker-v2`; structure-aware chunking.
+  hybrid + `bge-reranker-v2`; structure-aware chunking. The workhorse model uses only ~19 GB,
+  leaving ~95 GiB of unified memory to co-host embeddings + reranker.
 - **Reliability:** constrained decoding + Pydantic validation w/ retry; require chunk-ID
   citations; deterministic numeric layer for all math; "not found" over hallucination.
+- **Migration trigger (Qwen3.6 → sentiment):** Qwen3.6 is a *hybrid-thinking* model; #14645
+  breaks only *plain* `format:"json"`+`think:false` (prose, not JSON). Our schema-constrained
+  path sidesteps it — **verified 0/146 chunk failures on `qwen3.6:35b-a3b` (think:false),
+  2026-06-16** (naive `json.loads` 146/146). So 3.6 is already *correctness*-safe for sentiment;
+  we keep the 2507 instruct model only because it is faster (~87 vs ~73 tok/s). Use 3.6 under
+  vLLM for agentic work regardless.
 
-*Sources: Qwen2.5 (qwenlm.github.io), Ollama (ollama.com), PydanticAI (ai.pydantic.dev),
-LangGraph (langchain-ai.github.io/langgraph), bge-m3 / MTEB, LanceDB (lancedb.com).*
+*Sources: Qwen3 / Qwen3.6 (qwenlm.github.io), Ollama (ollama.com), vLLM (docs.vllm.ai),
+gpt-oss (openai.com), PydanticAI (ai.pydantic.dev), bge-m3 / MTEB, LanceDB (lancedb.com).
+Throughput figures measured on this GB10, 2026-06-16.*
 
 ---
 
@@ -394,7 +433,7 @@ LangGraph (langchain-ai.github.io/langgraph), bge-m3 / MTEB, LanceDB (lancedb.co
 | Sentiment | FinBERT, FinGPT, PyABSA, L&M dict | — | process |
 | Credibility | crowd-kit, networkx, BotMoE | NewsGuard, Botometer Pro | process |
 | Embeddings/RAG | bge-m3, LanceDB, FAISS | Qdrant Cloud | process |
-| LLM serving | Ollama, llama.cpp | vLLM, cloud APIs | synthesize |
+| LLM serving | **Ollama** (sync JSON: sentiment/extract) · **vLLM** (agentic, batch) | cloud APIs (redacted spans) | synthesize |
 | Orchestration | LangGraph, PydanticAI | — | synthesize |
 | Interface | Streamlit, Plotly | FastAPI + React | present |
 | Reporting | pandoc + tectonic | — | present |
@@ -417,20 +456,21 @@ LangGraph (langchain-ai.github.io/langgraph), bge-m3 / MTEB, LanceDB (lancedb.co
 
 ## 15. Phased build roadmap
 
-| Phase | Deliverable | Effort |
-|---|---|---|
-| **P1 — Generalize** | Company registry + sector templates; refactor PYPL engine to any ticker; validation gates | S |
-| **P2 — Ingestion** | Document upload + parsers + structure-aware chunking + provenance store | S–M |
-| **P3 — Interface MVP** | Streamlit app: ticker/upload, tunable valuation sliders → live football field/heatmap/scenarios → PDF export | M |
-| **P4 — Sentiment** | FinBERT + ABSA + L&M overlay; directional signal (tone vs. expectations / Δ vs. prior) | M |
-| **P5 — Credibility** | Quality gates + track-record + bot/coordination + crowd-kit aggregation | M |
-| **P6 — RAG + agents** | LanceDB RAG over filings/uploads; local-LLM extraction & narrative agents (Ollama + PydanticAI) | M–L |
-| **P7 — Predictive** | Factor+sentiment composite, calibrated probability, purged-CV backtest harness | L |
-| **P8 — Synthesis** | End-to-end auto-report for any company from uploads + live data; hybrid cloud escape hatch | M |
+| Phase | Deliverable | Effort | Status |
+|---|---|---|---|
+| **P1 — Generalize** | Company registry + sector templates; refactor PYPL engine to any ticker; validation gates | S | ✅ done |
+| **P2 — Ingestion** | Document upload + parsers + structure-aware chunking + provenance store | S–M | ✅ done |
+| **P3 — Interface MVP** | Streamlit app: ticker/upload, tunable valuation sliders → live football field/heatmap/scenarios → PDF export | M | ✅ done |
+| **P4 — Sentiment** | Directional signal (lexicon / FinBERT / **local-LLM**), ABSA, tone vs. prior; **live on the Spark via Ollama** | M | ✅ done |
+| **P5 — Credibility** | Quality gates + track-record + bot/coordination + crowd-kit aggregation | M | ← next |
+| **P6 — RAG + agents** | LanceDB RAG over filings/uploads; local-LLM extraction & narrative agents (Ollama + **vLLM** + PydanticAI) | M–L | planned |
+| **P7 — Predictive** | Factor+sentiment composite, calibrated probability, purged-CV backtest harness | L | planned |
+| **P8 — Synthesis** | End-to-end auto-report for any company from uploads + live data; hybrid cloud escape hatch | M | planned |
 
-Recommended first slice: **P1 → P2 → P3** delivers a working, generalized, *interactive*
-valuation platform you can demo. NLP/credibility/predictive (P4–P7) layer on top without
-rework because the contracts (feature store, provenance) are defined up front.
+Done first slice **P1 → P4**: a generalized, *interactive* valuation platform with a
+directional sentiment layer running on local inference. Credibility/RAG-agents/predictive
+(P5–P7) layer on top without rework because the contracts (feature store, provenance,
+structured-output) are defined up front.
 
 ---
 
