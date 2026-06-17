@@ -31,6 +31,7 @@ import comps as comps_mod
 import scenarios as scen_mod
 import charts as charts_mod
 import ingest
+import rag
 import sentiment as sentiment_mod
 
 st.set_page_config(page_title="Equity Intelligence Platform", layout="wide")
@@ -265,6 +266,56 @@ with tabs[5]:
     if chunks:
         st.write(f"**{len(chunks)} chunks** in the document store.")
         st.json(chunks[0])
+
+        st.markdown("---")
+        st.markdown("**Ask the filing — grounded RAG (P6)**")
+        st.caption("Hybrid dense+BM25 retrieval → LLM rerank → cite-or-abstain extraction: every "
+                   "figure is verified verbatim against a cited chunk and support-checked, or the "
+                   "system abstains. No fabricated numbers.")
+        if st.button("Build / refresh index", key="rag_build"):
+            with st.spinner("Embedding chunks (bge-m3) + building LanceDB index…"):
+                info = rag.build_index(cfg, ticker, chunks)
+            st.success(f"Indexed {info['n_chunks']} chunks (dim {info['dim']}).")
+        q = st.text_input("Question", placeholder="What were net revenues in fiscal 2025?", key="rag_q")
+        if q:
+            try:
+                with st.spinner("Retrieving + extracting…"):
+                    out = rag.extract(cfg, ticker, q)
+                r = out["retrieval"]
+                st.caption(f"retrieval: top cosine {r['top_similarity']} · "
+                           f"{'reranked' if r.get('reranked') else 'no rerank'} · "
+                           f"{'confident' if r['confident'] else 'low confidence'}")
+                if out["found"]:
+                    a, cite = out["answer"], out["citation"]
+                    st.success(f"**{a['value']}**" + (f" {a['unit']}" if a.get("unit") else "")
+                               + (f"  ({a['period']})" if a.get("period") else ""))
+                    st.markdown(f"> {cite['quote']}")
+                    st.caption(f"📎 {cite['source_file']} / {cite['section']} · chunk "
+                               f"`{cite['chunk_id']}` · verified verbatim + support-checked")
+                else:
+                    st.warning(f"No grounded answer — **abstained**. {out['reason']}")
+            except Exception as e:  # noqa: BLE001
+                st.error(f"RAG failed: {e}. Click **Build / refresh index** first; "
+                         "ensure Ollama is serving bge-m3 + the configured LLM.")
+
+        st.markdown("**Reconcile filing vs. computed (P6.3)**")
+        st.caption("Cross-checks the latest-FY headline figures extracted from the filing against the "
+                   "deterministic EDGAR/yfinance numbers and flags conflicts. Build the index first.")
+        if st.button("Reconcile latest fiscal year", key="rag_recon"):
+            try:
+                import reconcile
+                with st.spinner("Extracting + cross-checking…"):
+                    rc = reconcile.reconcile_financials(cfg, ticker)
+                if rc.get("error"):
+                    st.warning(rc["error"])
+                else:
+                    st.write(("✅ All figures reconcile." if rc["ok"] else "⚠️ Conflicts found.")
+                             + f"  {rc['counts']}")
+                    st.dataframe(pd.DataFrame([{"metric": r["metric"], "FY": r["period"],
+                                 "deterministic": r["expected"], "filing": r["filing_value"],
+                                 "status": r["status"], "rel_diff": r["rel_diff"]} for r in rc["items"]]))
+            except Exception as e:  # noqa: BLE001
+                st.error(f"Reconcile failed: {e}. Build the index + ensure Ollama is up.")
     else:
         st.info("Upload documents above to populate the per-ticker document store.")
 
@@ -301,6 +352,27 @@ with tabs[6]:
                     st.markdown(f"🟢 **({e['tone']:+.2f})** {e['text']}")
                 for e in rep.get("top_negative", []):
                     st.markdown(f"🔴 **({e['tone']:+.2f})** {e['text']}")
+            cred = rep.get("credibility")
+            if cred and not cred.get("error"):
+                st.markdown("---")
+                st.markdown("**Credibility & noise (Layer 2b)**")
+                q, risk = cred["quality"], cred["manipulation_risk"]
+                k1, k2, k3 = st.columns(3)
+                k1.metric("Credibility-weighted tone", f"{cred['weighted_tone']:+.2f}", cred["direction"])
+                k2.metric("Nodes kept", f"{q['kept']}/{cred['n_nodes']}", f"-{q['dropped']} filtered",
+                          delta_color="off")
+                k3.metric("Manipulation risk", risk["level"].upper())
+                st.caption("Trust weight = quality (language · relevance · info-density · dedup) × source "
+                           "credibility. Flag: " + "; ".join(risk["reasons"][:2]))
+                if cred["excluded"]:
+                    with st.expander(f"Excluded nodes ({len(cred['excluded'])}) · signal drivers"):
+                        st.write("**Filtered out:**"); st.dataframe(pd.DataFrame(cred["excluded"]))
+                        if cred["top_weighted"]:
+                            st.write("**Top-weighted (driving the signal):**")
+                            st.dataframe(pd.DataFrame(cred["top_weighted"]))
+                if not cred["social"]["available"]:
+                    st.caption("ℹ️ Account track-record / bot / coordination layers need a social source "
+                               "(StockTwits/Reddit, with accounts + timestamps) — not wired yet.")
         except Exception as e:  # noqa: BLE001
             st.error(f"Sentiment ({method}) failed: {e}. Try method=lexicon, or check the LLM endpoint.")
 with tabs[7]:

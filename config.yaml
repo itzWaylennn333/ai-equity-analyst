@@ -33,6 +33,33 @@ sentiment:
   llm_endpoint: "http://localhost:11434"   # Ollama-compatible; localhost = running on the DGX Spark itself
   llm_model: "qwen3:30b-a3b-instruct-2507-q4_K_M"   # MoE 3.3B-active: clean non-thinking JSON, ~8x faster than dense 32B on GB10's bandwidth wall
 
+# Credibility & noise layer (platform Layer 2b). Down-weights low-quality / untrustworthy
+# nodes before aggregating sentiment, and flags manipulation/noise. See docs/ARCHITECTURE.md s5.
+credibility:
+  enabled: true
+  min_relevance: 0.0            # on-topic gate; 0 keeps all document chunks, raise (e.g. 0.3) for social
+  dedup_jaccard: 0.85           # near-duplicate threshold (k-shingle Jaccard)
+  min_alpha_ratio: 0.55         # below = low-info (XBRL tag / number soup)
+  min_words: 25
+  source_weights: {}            # override per-source trust (defaults from sentiment.SOURCE_WEIGHTS)
+  news_source_seeds: {}         # per-domain news credibility, e.g. {reuters.com: 0.9, seekingalpha.com: 0.5}
+
+# RAG / grounded extraction (platform Layer 3 / P6). Hybrid dense+BM25 retrieval over ingested
+# chunks, then cite-or-abstain figure extraction. All local: embeddings via Ollama, store in LanceDB.
+rag:
+  embed_model: "bge-m3"         # Ollama embedding model (1024-d); pull with `ollama pull bge-m3`
+  embed_endpoint: null          # -> sentiment.llm_endpoint
+  llm_endpoint: null            # -> sentiment.llm_endpoint
+  llm_model: null               # -> sentiment.llm_model (qwen3 2507)
+  top_k: 5                      # passages passed to the extractor
+  candidates: 30                # per-retriever shortlist before RRF fusion
+  rrf_k: 60                     # Reciprocal Rank Fusion constant
+  min_similarity: 0.45          # retrieval-confidence gate (top cosine); below -> "not found"
+  rerank: "llm"                 # "llm" (torch-free listwise) | "none" | "cross-encoder" (future: bge-reranker-v2-m3)
+  rerank_pool: 12               # fused candidates reranked down to top_k
+  verify_support: true          # Self-RAG faithfulness check (LLM-as-judge) on the extracted figure
+  index_dir: "data/processed/{ticker}/lancedb"
+
 # Default valuation skeleton. Company files override; `null` -> derived from history.
 defaults:
   valuation:

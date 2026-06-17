@@ -317,4 +317,12 @@ def analyze(cfg: dict, ticker: str, chunks: list[dict], method: str | None = Non
                                "text": c.get("text", "")[:240]} for c, s in ranked[:2] if s["tone"] < 0]
     report["top_positive"] = [{"section": c.get("section"), "tone": round(s["tone"], 2),
                                "text": c.get("text", "")[:240]} for c, s in ranked[::-1][:2] if s["tone"] > 0]
+
+    # Layer 2b: credibility & noise -- weight nodes by quality x source trust, flag manipulation.
+    if (cfg.get("credibility") or {}).get("enabled"):
+        try:
+            import credibility
+            report["credibility"] = credibility.assess(cfg, ticker, chunks, scores)
+        except Exception as e:  # the trust layer must never break the sentiment path
+            report["credibility"] = {"enabled": True, "error": str(e)}
     return report

@@ -462,8 +462,8 @@ Throughput figures measured on this GB10, 2026-06-16.*
 | **P2 — Ingestion** | Document upload + parsers + structure-aware chunking + provenance store | S–M | ✅ done |
 | **P3 — Interface MVP** | Streamlit app: ticker/upload, tunable valuation sliders → live football field/heatmap/scenarios → PDF export | M | ✅ done |
 | **P4 — Sentiment** | Directional signal (lexicon / FinBERT / **local-LLM**), ABSA, tone vs. prior; **live on the Spark via Ollama** | M | ✅ done |
-| **P5 — Credibility** | Quality gates + track-record + bot/coordination + crowd-kit aggregation | M | ← next |
-| **P6 — RAG + agents** | LanceDB RAG over filings/uploads; local-LLM extraction & narrative agents (Ollama + **vLLM** + PydanticAI) | M–L | planned |
+| **P5 — Credibility** | Quality gate (language · relevance · low-info · dedup) + source-credibility weighting + credibility-weighted aggregate + manipulation/noise flag (`src/credibility.py`); track-record / bot / coordination scaffolded (need a social source) | M | ✅ core done |
+| **P6 — RAG + agents** | **P6.1–P6.2 done** (`src/rag.py`): hybrid dense(bge-m3)+BM25 retrieval + RRF + confidence gate, **LLM listwise rerank**, and cite-or-abstain extraction with **verbatim span verification + Self-RAG support check (LLM-as-judge)** + citation precision/recall; surfaced as an "Ask the filing" panel in the app. Grounded on the real PYPL 10-K (net revenues 33,172 cited+verified; abstains when absent). **P6.3: reconciliation agent** (`src/reconcile.py`) cross-checks filing-extracted figures vs the deterministic EDGAR/yfinance numbers (scale-robust; flags conflicts) — verified on PYPL FY2025 (revenue/net income/operating income all reconcile, cited). Remaining: cross-encoder rerank (bge-reranker-v2-m3 via TEI/torch), RAPTOR tree index, narrative agent (PydanticAI). | M–L | 🔄 P6.1–6.3 done |
 | **P7 — Predictive** | Factor+sentiment composite, calibrated probability, purged-CV backtest harness | L | planned |
 | **P8 — Synthesis** | End-to-end auto-report for any company from uploads + live data; hybrid cloud escape hatch | M | planned |
 

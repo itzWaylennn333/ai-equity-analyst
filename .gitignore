@@ -28,6 +28,8 @@ outputs/*/
 !outputs/tables/
 data/processed/historical_*.csv
 data/processed/dcf_projection_*.csv
+# regenerable RAG vector index (binary; rebuild via rag.build_index)
+data/processed/*/lancedb/
 
 # NOTE: data/ and outputs/ are intentionally NOT ignored.
 # Committing cached raw pulls + processed data + generated charts means the

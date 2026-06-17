@@ -27,5 +27,10 @@ beautifulsoup4
 lxml
 pymupdf            # PDF text fallback + preview rasterization
 
+# --- RAG / grounded extraction (platform P6) ---
+lancedb            # embedded vector store for hybrid dense retrieval
+rank-bm25          # pure-Python BM25 sparse retrieval (RRF-fused with dense)
+# Embeddings (bge-m3) + the extraction LLM run on the local Ollama server: `ollama pull bge-m3`
+
 # --- PDF fallback only (pure-Python HTML/CSS -> PDF) ---
 # weasyprint==66.0
