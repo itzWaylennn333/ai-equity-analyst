@@ -55,10 +55,16 @@ rag:
   candidates: 30                # per-retriever shortlist before RRF fusion
   rrf_k: 60                     # Reciprocal Rank Fusion constant
   min_similarity: 0.45          # retrieval-confidence gate (top cosine); below -> "not found"
-  rerank: "llm"                 # "llm" (torch-free listwise) | "none" | "cross-encoder" (future: bge-reranker-v2-m3)
+  rerank: "llm"                 # "llm" (torch-free listwise, default) | "cross-encoder" | "none"
   rerank_pool: 12               # fused candidates reranked down to top_k
+  rerank_model: "BAAI/bge-reranker-v2-m3"   # used when rerank=="cross-encoder" (needs `pip install sentence-transformers`; runs on GPU)
   verify_support: true          # Self-RAG faithfulness check (LLM-as-judge) on the extracted figure
   index_dir: "data/processed/{ticker}/lancedb"
+  # RAPTOR tree index (optional navigation layer; summaries are NOT citable source -> leaves only for extraction)
+  raptor:
+    enabled: false
+    max_levels: 3
+    cluster_size: 6
 
 # Default valuation skeleton. Company files override; `null` -> derived from history.
 defaults:

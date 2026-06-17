@@ -19,6 +19,9 @@ def test_parse_number():
     assert reconcile._parse_number("7%") == 7
     assert reconcile._parse_number("no number here") is None
     assert reconcile._parse_number("33,172 (basic)") == 33172   # trailing '(basic)' is not a suffix
+    assert reconcile._parse_number(".5") == 0.5                 # leading-decimal (regression: was 5.0)
+    assert reconcile._parse_number("1,234,567") == 1234567      # valid thousands grouping
+    assert reconcile._parse_number("123,45") is None            # malformed grouping -> reject, not 12345
 
 
 def test_same_magnitude():

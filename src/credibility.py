@@ -165,7 +165,10 @@ def source_credibility(chunk: dict, cfg: dict) -> float:
         src = (chunk.get("source_file") or "").lower()
         for domain, w in c["news_source_seeds"].items():
             if domain.lower() in src:
-                return round(float(w), 3)
+                try:
+                    return round(float(w), 3)
+                except (ValueError, TypeError):
+                    pass   # malformed seed value in config -> fall through to base credibility
     return round(base, 3)
 
 
@@ -235,8 +238,11 @@ def assess(cfg: dict, ticker: str, chunks: list[dict], scores: list[dict],
     """Run Layer 2b over already-scored chunks -> credibility-weighted aggregate + risk flag.
 
     `scores[i]` aligns with `chunks[i]` and must carry at least {"tone": float} (and "polar").
-    Returns a self-contained sub-report; never raises on bad nodes (degrades to neutral).
+    Returns a self-contained sub-report; degrades to neutral on bad node *content*. A chunks/scores
+    length mismatch is a caller error (silent zip-truncation would drop nodes) and raises.
     """
+    if len(scores) != len(chunks):
+        raise ValueError(f"scores ({len(scores)}) must align 1:1 with chunks ({len(chunks)})")
     gate = quality_gate(chunks, cfg, ticker, aliases)
     num = den = 0.0
     weighted = []

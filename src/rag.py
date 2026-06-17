@@ -61,8 +61,9 @@ def _cfg(cfg: dict) -> dict:
     c.setdefault("candidates", 30)        # per-retriever shortlist before fusion
     c.setdefault("rrf_k", 60)             # RRF constant (Cormack et al. 2009)
     c.setdefault("min_similarity", 0.45)  # retrieval-confidence gate (top cosine); below -> "not found"
-    c["rerank"] = c.get("rerank") or "llm"  # "llm" (torch-free listwise) | "none" | "cross-encoder" (future)
+    c["rerank"] = c.get("rerank") or "llm"  # "llm" (torch-free listwise) | "cross-encoder" | "none"
     c.setdefault("rerank_pool", 12)       # fused candidates fed to the reranker, narrowed to top_k
+    c.setdefault("rerank_model", "BAAI/bge-reranker-v2-m3")  # used when rerank == "cross-encoder"
     c.setdefault("verify_support", True)  # LLM-as-judge faithfulness check on the extracted figure
     return c
 
@@ -151,6 +152,26 @@ def _llm_rerank(cfg: dict, query: str, passages: list[dict], k: int) -> list[dic
         return passages[:k]
 
 
+_RERANKER: dict = {}   # model_name -> FlagReranker (loaded once)
+
+
+def _cross_encoder_rerank(cfg: dict, query: str, passages: list[dict], k: int) -> list[dict]:
+    """Cross-encoder rerank via bge-reranker-v2-m3 (the research's proven booster) -- an OPTIONAL
+    adapter (needs `pip install sentence-transformers`; runs on the GB10 GPU). Jointly scores each
+    (query, passage) and re-sorts; falls back to the torch-free LLM reranker if it is unavailable."""
+    c = _cfg(cfg)
+    name = c["rerank_model"]
+    try:
+        if name not in _RERANKER:
+            from sentence_transformers import CrossEncoder
+            _RERANKER[name] = CrossEncoder(name, max_length=512)
+        scores = _RERANKER[name].predict([(query, (p.get("text") or "")[:2000]) for p in passages])
+        order = sorted(range(len(passages)), key=lambda i: -float(scores[i]))
+        return [{**passages[i], "rerank_score": round(float(scores[i]), 4)} for i in order][:k]
+    except Exception:
+        return _llm_rerank(cfg, query, passages, k)
+
+
 _SUPPORT_SCHEMA = {"type": "object", "additionalProperties": False,
                    "properties": {"supported": {"type": "boolean"}, "reason": {"type": "string"}},
                    "required": ["supported", "reason"]}
@@ -213,11 +234,17 @@ def retrieve(cfg: dict, ticker: str, query: str, *, k: int | None = None,
     pool = [{"chunk_id": cid, "rrf": round(fused[cid], 5),
              **{f: by_id.get(cid, {}).get(f) for f in ("text", "doc_type", "section", "source_file")}}
             for cid in pool_ids]
-    do_rerank = c["rerank"] == "llm" and len(pool) > 1
-    results = _llm_rerank(cfg, query, pool, k) if do_rerank else pool[:k]
+    mode = c["rerank"] if len(pool) > 1 else "none"
+    if mode == "cross-encoder":
+        results = _cross_encoder_rerank(cfg, query, pool, k)
+    elif mode == "llm":
+        results = _llm_rerank(cfg, query, pool, k)
+    else:
+        results = pool[:k]
+    reranked = mode in ("llm", "cross-encoder")
     return {"query": query, "top_similarity": round(float(top_sim), 3),
             "confident": float(top_sim) >= c["min_similarity"], "n_candidates": len(chunks),
-            "reranked": bool(do_rerank), "results": results}
+            "reranked": reranked, "rerank_mode": mode if reranked else "none", "results": results}
 
 
 # --------------------------------------------------------------------------- #
@@ -270,20 +297,25 @@ def extract(cfg: dict, ticker: str, question: str, *, k: int | None = None,
                 "reason": f"invalid passage citation ({pi})"}
     src = passages[pi - 1]
     quote, value = data.get("quote") or "", data.get("value") or ""
-    quote_ok = bool(quote) and _norm(quote) in _norm(src["text"])
-    value_ok = bool(value) and _norm(value) in _norm(src["text"])
+    ntext, nq, nv = _norm(src["text"]), _norm(quote), _norm(value)
+    quote_ok = bool(nq) and nq in ntext          # bool() guard: a whitespace-only span normalizes to
+    value_ok = bool(nv) and nv in ntext          # "" which is a substring of everything -> must reject
     verbatim = quote_ok and value_ok
     # Self-RAG-style faithfulness gate: only run when the span is verbatim-verified.
     supported, support_reason = (None, None)
     if verbatim and c["verify_support"]:
         supported, support_reason = _judge_support(cfg, question, value, quote)
-    grounded = verbatim and (supported is not False)   # fail only on EXPLICIT non-support
+    # If the support check is REQUIRED but unavailable (None), do not treat it as a pass.
+    support_needed = bool(c["verify_support"]) and verbatim
+    grounded = verbatim and supported is not False and not (support_needed and supported is None)
     if grounded:
         reason = None
-    elif verbatim and supported is False:
-        reason = "failed support check: " + (support_reason or "quote does not support the answer")
-    else:
+    elif not verbatim:
         reason = "failed verbatim verification (quoted value/sentence not in the cited chunk)"
+    elif supported is False:
+        reason = "failed support check: " + (support_reason or "quote does not support the answer")
+    else:   # support required but judge unavailable -> abstain rather than assume grounded
+        reason = "support check unavailable: " + (support_reason or "judge failed")
     return {
         "found": grounded,
         "answer": {"value": value, "unit": data.get("unit"), "period": data.get("period")} if grounded else None,

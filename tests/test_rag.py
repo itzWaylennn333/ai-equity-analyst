@@ -79,6 +79,18 @@ def test_citation_metrics():  # pure unit (no Ollama needed)
     assert rag.citation_metrics([], [])["f1"] == 0.0
 
 
+def test_cross_encoder_rerank_optional():
+    import importlib.util
+    if importlib.util.find_spec("sentence_transformers") is None:
+        print("    (skip: sentence-transformers not installed — cross-encoder is optional)")
+        return
+    rag.build_index(CFG, TICKER, CHUNKS)
+    cfg = {**CFG, "rag": {**CFG["rag"], "rerank": "cross-encoder"}}
+    ret = rag.retrieve(cfg, TICKER, "net revenues for fiscal 2025", chunks=CHUNKS)
+    assert ret["rerank_mode"] == "cross-encoder", ret
+    assert all("rerank_score" in r for r in ret["results"]), ret["results"]
+
+
 if __name__ == "__main__":
     if not _ollama_up():
         print("SKIP: Ollama not reachable on :11434 (RAG tests need bge-m3 + the LLM)")

@@ -22,7 +22,7 @@ import utils
 # Word-boundary magnitude suffixes (exact trailing token only, so "(basic)" is NOT read as billions).
 _SUFFIX = {"trillion": 1e12, "tn": 1e12, "t": 1e12, "billion": 1e9, "bn": 1e9, "b": 1e9,
            "million": 1e6, "mm": 1e6, "mn": 1e6, "m": 1e6, "thousand": 1e3, "k": 1e3}
-_NUM = re.compile(r"[-+]?\d[\d,]*\.?\d*")
+_NUM = re.compile(r"[-+]?(?:\d[\d,]*\.?\d*|\.\d+)")   # also matches leading-decimal ".5"
 # Unit scales to test when checking whether two magnitudes represent the same quantity.
 _SCALES = (1e12, 1e9, 1e6, 1e3, 1e2, 1.0, 1e-2, 1e-3, 1e-6, 1e-9, 1e-12)
 
@@ -45,8 +45,12 @@ def _parse_number(s) -> float | None:
     m = _NUM.search(stripped)
     if not m:
         return None
+    raw = m.group(0)
+    intpart = raw.lstrip("+-").split(".")[0]
+    if "," in intpart and not re.fullmatch(r"\d{1,3}(,\d{3})+", intpart):
+        return None   # malformed thousands grouping (e.g. "123,45") -> reject, don't silently coerce
     try:
-        num = float(m.group(0).replace(",", ""))
+        num = float(raw.replace(",", ""))
     except ValueError:
         return None
     tok = re.match(r"\s*([a-z]+)", stripped[m.end():])   # exact trailing word only
@@ -100,7 +104,8 @@ def reconcile(cfg: dict, ticker: str, items: list[dict], *, tol: float = 0.02, e
                 scale = _same_magnitude(fn, float(en), tol)
                 rec["status"] = "match" if scale is not None else "mismatch"
                 rec["scale"] = scale
-                rec["rel_diff"] = round(abs(fn * (scale or 1.0) - float(en)) / max(abs(float(en)), 1e-9), 4)
+                if scale is not None:   # rel_diff is only meaningful at a matched unit scale
+                    rec["rel_diff"] = round(abs(fn * scale - float(en)) / max(abs(float(en)), 1e-9), 4)
         rows.append(rec)
     counts = {s: sum(r["status"] == s for r in rows)
               for s in ("match", "mismatch", "filing_not_found", "no_deterministic", "unparseable_filing_value")}
@@ -126,12 +131,16 @@ def reconcile_financials(cfg: dict, ticker: str, *, fin: pd.DataFrame | None = N
         return {"ticker": ticker, "error": "no deterministic historical_{ticker}.csv -- run run.py first",
                 "items": [], "counts": {}, "ok": None}
     fy = fy or int(max(int(y) for y in fin.index))
-    items = []
+    items, skipped = [], []
     for metric, (col, qtmpl) in _METRICS.items():
         if col not in fin.columns or fy not in fin.index:
+            skipped.append({"metric": metric,
+                            "reason": "column missing" if col not in fin.columns else "fy not in index"})
             continue
         val = fin.loc[fy, col]
         items.append({"metric": metric, "period": fy,
                       "question": qtmpl.format(t=ticker, fy=fy),
                       "expected": float(val) if pd.notna(val) else None})
-    return reconcile(cfg, ticker, items, tol=tol, extractor=extractor)
+    out = reconcile(cfg, ticker, items, tol=tol, extractor=extractor)
+    out["skipped"] = skipped
+    return out

@@ -27,10 +27,13 @@ beautifulsoup4
 lxml
 pymupdf            # PDF text fallback + preview rasterization
 
-# --- RAG / grounded extraction (platform P6) ---
+# --- RAG / grounded extraction + agents (platform P6) ---
 lancedb            # embedded vector store for hybrid dense retrieval
 rank-bm25          # pure-Python BM25 sparse retrieval (RRF-fused with dense)
-# Embeddings (bge-m3) + the extraction LLM run on the local Ollama server: `ollama pull bge-m3`
+scikit-learn       # RAPTOR tree clustering (optional index mode)
+# Embeddings (bge-m3) + extraction/rerank/narrative LLM run on the local Ollama server: `ollama pull bge-m3`
+# OPTIONAL cross-encoder rerank (rag.rerank: "cross-encoder") -- heavy, GPU-accelerated:
+#   pip install sentence-transformers   # pulls torch; downloads BAAI/bge-reranker-v2-m3 (~2.3GB) on first use
 
 # --- PDF fallback only (pure-Python HTML/CSS -> PDF) ---
 # weasyprint==66.0
