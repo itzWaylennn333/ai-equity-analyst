@@ -104,6 +104,40 @@ forecasts.
 Sharpe, PBO net of costs. **Do NOT claim** price targets, precise forecasts, market timing, or
 "beats the market." Frame as a *probabilistic directional tilt with confidence*.
 
+### C+. Verified evidence (deep-research verification pass, 2026-06-18)
+Adversarially fact-checked against primary sources; drives the P7 build (`src/backtest.py`).
+
+- **Overfitting is quantitative.** Expected max in-sample Sharpe of N skill-less trials ≈ √(2·ln N);
+  with 5y of data, >45 configs ⇒ E[max IS Sharpe]=1 while E[OOS]=0 (Bailey, Borwein, López de Prado
+  & Zhu, *Pseudo-Mathematics & Financial Charlatanism*, Notices of the AMS 2014). **Report N.**
+  **Hold-out and k-fold cannot detect overfitting** (they ignore N) → use **PBO via CSCV** +
+  **Deflated Sharpe Ratio** (Bailey & López de Prado, SSRN 2326253 / 2460551; J. Portfolio Mgmt 40(5)).
+  Caveat: **CSCV is biased** — pessimistic when strategy means ≈0, optimistic when one dominates
+  (MDPI *Risks* 9(1):18, 2021). Tooling: `pypbo`.
+- **Calibration is a sample-size choice:** Platt < ~1000 events ≤ isotonic (Niculescu-Mizil & Caruana,
+  ICML 2005) → **default Platt** for equities. **Calibration decays under shift** — refit on rolling
+  windows, monitor ECE/Brier (Ovadia et al., NeurIPS 2019). Beta calibration = never-worse drop-in for
+  binary signals (Kull et al., AISTATS 2017). Temperature scaling (Guo et al., ICML 2017) is for softmax
+  nets, **not** trees.
+- **Conformal = honest intervals, with limits:** split conformal gives exact *marginal* coverage under
+  exchangeability (Vovk et al. 2005) — but **exchangeability fails for returns**; the shortfall is bounded
+  by drift TV-distance (Barber, Candès, Ramdas & Tibshirani, *Annals of Statistics* 51(2), 2023). **ACI**
+  restores long-run *time-averaged* coverage assumption-free (Gibbs & Candès, NeurIPS 2021). Exact
+  *conditional* coverage is impossible without infinite intervals (Foygel Barber et al. 2021) → use
+  vol-scaled/CQR scores and **report rolling + crisis-window coverage**. Tooling: MAPIE.
+- **Factor reality:** ML beats linear via nonlinear interactions, but monthly OOS R² ≈ 0.3–0.4% and the
+  honest figure is **value-weighted** Sharpe ~1.35 (not EW 2.45) (Gu, Kelly & Xiu, RFS 2020).
+  **~50–65% of anomalies don't replicate** under NYSE breakpoints + value-weighting; frictions/liquidity
+  signals 96% fail (Hou, Xue & Zhang, RFS 2020). Real edges decay **~26% OOS / ~58% post-publication**
+  (McLean & Pontiff, JF 2016) → apply a decay haircut. Significance bar = **|t| > 3.0** (Harvey, Liu &
+  Zhu, RFS 2016).
+
+**Build order (P7):** ① evaluation/honesty harness first (purged CV · report N · DSR · PBO · |t|>3 gate ·
+replication harness · decay haircut) → ② calibrated probability (Platt, rolling-refit + ECE monitor) →
+③ conformal intervals (split+CQR, ACI, rolling/crisis coverage) → LightGBM + ElasticNet benchmark. **Do
+NOT** ship raw backtest Sharpe, EW headline numbers, |t|>2 signals, sub-1% R² as "failure", temperature
+scaling for trees, marginal coverage as a per-day guarantee, or any "beat the market" framing.
+
 ---
 
 ## D. Local LLMs for agentic financial workflows
